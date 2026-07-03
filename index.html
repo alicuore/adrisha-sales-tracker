@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adrisha's Sales Tracker — June 2026</title>
+<title>Adrisha's Sales Tracker — July 2026</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBhMGEwZiIvPjxyZWN0IHg9IjQiIHk9IjIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI4IiByeD0iMSIgZmlsbD0iI2U4Yjg2ZCIvPjxyZWN0IHg9IjEzIiB5PSIxMiIgd2lkdGg9IjUiIGhlaWdodD0iMTYiIHJ4PSIxIiBmaWxsPSIjZTg3ZDhiIi8+PHJlY3QgeD0iMjIiIHk9IjYiIHdpZHRoPSI1IiBoZWlnaHQ9IjIyIiByeD0iMSIgZmlsbD0iIzZkZThjNCIvPjwvc3ZnPg==">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -822,8 +822,11 @@ const PRELOADED = {
     ]
   },
   "eskayvie_2026_7": {
-    hours: 0,
-    entries: []
+    hours: 4.470000,
+    entries: [
+      {id:"k01",date:"2026-07-01",sales:8306.96,dur:2.270000,notes:"Session 1",startTime:"07:43",endTime:"10:00"},
+      {id:"k02",date:"2026-07-02",sales:5144.03,dur:2.200000,notes:"Session 1",startTime:"07:47",endTime:"09:59"}
+    ]
   }
 };
 
@@ -935,7 +938,7 @@ const ALL_SCHEDULES = [
   {key:"2026_6", label:"June 2026", year:2026, month:6, data: JUNE_2026_SCHEDULE},
   {key:"2026_7", label:"July 2026", year:2026, month:7, data: JULY_2026_SCHEDULE},
 ];
-let scheduleActiveKey = "2026_6";
+let scheduleActiveKey = "2026_7";
 
 // Months with known data issues
 const INCOMPLETE_MONTHS = { "eskayvie_2026_2": "⚠️ Feb 2026: Some sessions may be missing — calculated sales (RM66,789) differ from your stated total (RM71,368). Please re-check and resend any missing sessions." };
@@ -1288,7 +1291,9 @@ function onEntryDateChange(){
   const hint = document.getElementById('scheduleHint');
   const hintText = document.getElementById('scheduleHintText');
   if(!hint || !hintText) return;
-  const sched = JUNE_2026_SCHEDULE[date];
+  const dateMonth = date ? parseInt(date.split('-')[1],10) : null;
+  const schedSet = ALL_SCHEDULES.find(s=>s.month===dateMonth);
+  const sched = schedSet ? schedSet.data[date] : null;
   if(sched){
     hint.style.display = 'flex';
     hintText.textContent = `Scheduled slot: ${sched.label} — auto-filling start time`;
@@ -1355,9 +1360,9 @@ function populateSel(mId,yId,defM,defY){
 function init(){
   // localStorage used only for user-added entries on top of preloaded data
 
-  populateSel('monthSelect','yearSelect',6,2026);
-  populateSel('cmpMonthA','cmpYearA',6,2026);
-  populateSel('cmpMonthB','cmpYearB',5,2026);
+  populateSel('monthSelect','yearSelect',7,2026);
+  populateSel('cmpMonthA','cmpYearA',7,2026);
+  populateSel('cmpMonthB','cmpYearB',6,2026);
 
   const oys=document.getElementById('overviewYear');
   for(let y=2025;y<=2027;y++){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===2026)o.selected=true;oys.appendChild(o);}
