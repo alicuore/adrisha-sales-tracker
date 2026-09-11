@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "ruleSetId": "2026-v1",
+  "currency": "MYR",
+  "timezone": "Asia/Kuala_Lumpur",
+  "hourlyRate": "16.6667",
+  "monthlyHoursTargetSeconds": 432000,
+  "attendancePrecedence": {
+    "actualSessionOverridesPlannedAttendance": true
+  },
+  "commission": {
+    "tiers": [
+      { "minGmvCents": 0, "maxGmvCents": 1499999, "commissionCents": 0 },
+      { "minGmvCents": 1500000, "maxGmvCents": 1999999, "commissionCents": 10000 },
+      { "minGmvCents": 2000000, "maxGmvCents": 2499999, "commissionCents": 20000 },
+      { "minGmvCents": 2500000, "maxGmvCents": 2999999, "commissionCents": 50000 },
+      { "minGmvCents": 3000000, "maxGmvCents": 3499999, "commissionCents": 100000 },
+      { "minGmvCents": 3500000, "maxGmvCents": 3999999, "commissionCents": 160000 },
+      { "minGmvCents": 4000000, "maxGmvCents": 4499999, "commissionCents": 230000 },
+      { "minGmvCents": 4500000, "maxGmvCents": 4999999, "commissionCents": 310000 },
+      { "minGmvCents": 5000000, "maxGmvCents": 5999999, "commissionCents": 400000 },
+      { "minGmvCents": 6000000, "maxGmvCents": 6999999, "commissionCents": 480000 },
+      { "minGmvCents": 7000000, "maxGmvCents": 7999999, "commissionCents": 560000 },
+      { "minGmvCents": 8000000, "maxGmvCents": 8999999, "commissionCents": 640000 },
+      { "minGmvCents": 9000000, "maxGmvCents": 9999999, "commissionCents": 720000 },
+      { "minGmvCents": 10000000, "maxGmvCents": 10999999, "commissionCents": 800000 }
+    ],
+    "extension": {
+      "baseGmvCents": 10000000,
+      "baseCommissionCents": 800000,
+      "gmvStepCents": 1000000,
+      "commissionStepCents": 80000
+    }
+  }
+}

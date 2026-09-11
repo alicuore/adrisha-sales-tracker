@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "period": "2026-01",
+  "status": "completed",
+  "ruleSetId": "2026-v1",
+  "approvedPayrollSeconds": 139872,
+  "source": {
+    "type": "runtime-effective-preloaded",
+    "branch": "dashboard-v2",
+    "commit": "248317d24591b40c69f24a852a4464f9dbdfe33c",
+    "legacyKey": "eskayvie_2026_1"
+  },
+  "sessions": [
+    {
+      "id": "2026-01-20-s01",
+      "legacyId": "j01",
+      "date": "2026-01-20",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 0,
+      "gmvCents": 42700,
+      "notes": "Sales only (pre-tracker)"
+    },
+    {
+      "id": "2026-01-21-s01",
+      "legacyId": "j02",
+      "date": "2026-01-21",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 0,
+      "gmvCents": 121900,
+      "notes": "Sales only (pre-tracker)"
+    },
+    {
+      "id": "2026-01-22-s01",
+      "legacyId": "j03",
+      "date": "2026-01-22",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 1647,
+      "gmvCents": 14681,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-22-s02",
+      "legacyId": "j04",
+      "date": "2026-01-22",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2227,
+      "gmvCents": 42600,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-22-s03",
+      "legacyId": "j05",
+      "date": "2026-01-22",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2007,
+      "gmvCents": 15600,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-01-22-s04",
+      "legacyId": "j06",
+      "date": "2026-01-22",
+      "sessionNumber": 4,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2089,
+      "gmvCents": 8000,
+      "notes": "Session 4"
+    },
+    {
+      "id": "2026-01-22-s05",
+      "legacyId": "j07",
+      "date": "2026-01-22",
+      "sessionNumber": 5,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4167,
+      "gmvCents": 30900,
+      "notes": "Session 5"
+    },
+    {
+      "id": "2026-01-22-s06",
+      "legacyId": "j08",
+      "date": "2026-01-22",
+      "sessionNumber": 6,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2794,
+      "gmvCents": 31299,
+      "notes": "Session 6"
+    },
+    {
+      "id": "2026-01-22-s07",
+      "legacyId": "j09",
+      "date": "2026-01-22",
+      "sessionNumber": 7,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 1982,
+      "gmvCents": 23600,
+      "notes": "Session 7"
+    },
+    {
+      "id": "2026-01-23-s01",
+      "legacyId": "j10",
+      "date": "2026-01-23",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4763,
+      "gmvCents": 30900,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-23-s02",
+      "legacyId": "j11",
+      "date": "2026-01-23",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2359,
+      "gmvCents": 7669,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-23-s03",
+      "legacyId": "j12",
+      "date": "2026-01-23",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4411,
+      "gmvCents": 32100,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-01-23-s04",
+      "legacyId": "j13",
+      "date": "2026-01-23",
+      "sessionNumber": 4,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2182,
+      "gmvCents": 13400,
+      "notes": "Session 4"
+    },
+    {
+      "id": "2026-01-23-s05",
+      "legacyId": "j14",
+      "date": "2026-01-23",
+      "sessionNumber": 5,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 5237,
+      "gmvCents": 37240,
+      "notes": "Session 5"
+    },
+    {
+      "id": "2026-01-25-s01",
+      "legacyId": "j15",
+      "date": "2026-01-25",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 13320,
+      "gmvCents": 109641,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-01-26-s01",
+      "legacyId": "j16",
+      "date": "2026-01-26",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 8940,
+      "gmvCents": 220436,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-26-s02",
+      "legacyId": "j17",
+      "date": "2026-01-26",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 6442,
+      "gmvCents": 20990,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-27-s01",
+      "legacyId": "j18",
+      "date": "2026-01-27",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 18006,
+      "gmvCents": 215100,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-01-28-s01",
+      "legacyId": "j19",
+      "date": "2026-01-28",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 18025,
+      "gmvCents": 195400,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-28-s02",
+      "legacyId": "j20",
+      "date": "2026-01-28",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3056,
+      "gmvCents": 62900,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-29-s01",
+      "legacyId": "j21",
+      "date": "2026-01-29",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 5651,
+      "gmvCents": 54400,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-29-s02",
+      "legacyId": "j22",
+      "date": "2026-01-29",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 12340,
+      "gmvCents": 88000,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-30-s01",
+      "legacyId": "j23",
+      "date": "2026-01-30",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7208,
+      "gmvCents": 24600,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-01-30-s02",
+      "legacyId": "j24",
+      "date": "2026-01-30",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4959,
+      "gmvCents": 16300,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-01-30-s03",
+      "legacyId": "j25",
+      "date": "2026-01-30",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3931,
+      "gmvCents": 48400,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-01-30-s04",
+      "legacyId": "j26",
+      "date": "2026-01-30",
+      "sessionNumber": 4,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2129,
+      "gmvCents": 15800,
+      "notes": "Session 4"
+    }
+  ],
+  "attendance": [],
+  "schedule": []
+}

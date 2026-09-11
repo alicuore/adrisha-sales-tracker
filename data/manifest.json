@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "defaultPeriod": "2026-09",
+  "source": {
+    "type": "runtime-effective-preloaded",
+    "branch": "dashboard-v2",
+    "commit": "248317d24591b40c69f24a852a4464f9dbdfe33c"
+  },
+  "businessRules": "config/business-rules.json",
+  "months": [
+    { "period": "2026-01", "status": "completed", "path": "2026/01-january.json" },
+    { "period": "2026-02", "status": "completed", "path": "2026/02-february.json" },
+    { "period": "2026-03", "status": "completed", "path": "2026/03-march.json" },
+    { "period": "2026-04", "status": "completed", "path": "2026/04-april.json" },
+    { "period": "2026-05", "status": "completed", "path": "2026/05-may.json" },
+    { "period": "2026-06", "status": "completed", "path": "2026/06-june.json" },
+    { "period": "2026-07", "status": "completed", "path": "2026/07-july.json" },
+    { "period": "2026-08", "status": "completed", "path": "2026/08-august.json" },
+    { "period": "2026-09", "status": "open", "path": "2026/09-september.json" }
+  ]
+}
