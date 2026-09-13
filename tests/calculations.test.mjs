@@ -98,12 +98,25 @@ test('September analytics are derived only from session records', async () => {
   ]);
   const result = calculateMonth(september.sessions, september.approvedPayrollSeconds, rules);
 
-  assert.equal(result.sessionCount, 11);
-  assert.equal(result.gmvCents, 5_812_702);
+  assert.equal(result.sessionCount, 17);
+  assert.equal(result.gmvCents, 6_966_418);
   assert.equal(result.dailyGmvCents['2026-09-01'], 1_010_649);
-  assert.equal(result.dailyGmvCents['2026-09-10'], 260_001);
-  assert.equal(result.commissionCents, 400_000);
-  assert.equal(result.basicSalaryCents, 54_445);
+  assert.equal(result.dailyGmvCents['2026-09-10'], 273_001);
+  assert.equal(result.dailyGmvCents['2026-09-11'], 239_953);
+  assert.equal(result.dailyGmvCents['2026-09-12'], 337_010);
+  assert.equal(result.dailyGmvCents['2026-09-13'], 563_753);
+  assert.equal(result.commissionCents, 480_000);
+  assert.equal(result.basicSalaryCents, 73_639);
+  assert.equal(september.approvedPayrollSeconds, 159_060);
+  for (const [id, durationSeconds] of [
+    ['2026-09-11-s01', 1380],
+    ['2026-09-13-s01', 1680]
+  ]) {
+    const session = september.sessions.find(item => item.id === id);
+    assert.ok(session, `Missing zero-GMV livestream ${id}`);
+    assert.equal(session.gmvCents, 0);
+    assert.equal(session.durationSeconds, durationSeconds);
+  }
 });
 
 test('approved payroll hours remain independent from summed session durations', async () => {

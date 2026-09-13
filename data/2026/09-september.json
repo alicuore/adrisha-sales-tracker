@@ -3,7 +3,7 @@
   "period": "2026-09",
   "status": "open",
   "ruleSetId": "2026-v1",
-  "approvedPayrollSeconds": 117600,
+  "approvedPayrollSeconds": 159060,
   "source": {
     "type": "runtime-effective-preloaded",
     "branch": "dashboard-v2",
@@ -129,7 +129,73 @@
       "startTime": "13:22",
       "endTime": "14:29",
       "durationSeconds": 4020,
-      "gmvCents": 90409,
+      "gmvCents": 103409,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-09-11-s01",
+      "legacyId": "s14",
+      "date": "2026-09-11",
+      "sessionNumber": 1,
+      "startTime": "07:38",
+      "endTime": "08:01",
+      "durationSeconds": 1380,
+      "gmvCents": 0,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-09-11-s02",
+      "legacyId": "s12",
+      "date": "2026-09-11",
+      "sessionNumber": 2,
+      "startTime": "08:06",
+      "endTime": "08:42",
+      "durationSeconds": 2160,
+      "gmvCents": 36072,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-09-11-s03",
+      "legacyId": "s13",
+      "date": "2026-09-11",
+      "sessionNumber": 3,
+      "startTime": "09:01",
+      "endTime": "10:45",
+      "durationSeconds": 6240,
+      "gmvCents": 203881,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-09-12-s01",
+      "legacyId": "s15",
+      "date": "2026-09-12",
+      "sessionNumber": 1,
+      "startTime": "19:37",
+      "endTime": "23:46",
+      "durationSeconds": 14940,
+      "gmvCents": 337010,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-09-13-s01",
+      "legacyId": "s16",
+      "date": "2026-09-13",
+      "sessionNumber": 1,
+      "startTime": "18:02",
+      "endTime": "18:30",
+      "durationSeconds": 1680,
+      "gmvCents": 0,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-09-13-s02",
+      "legacyId": "s17",
+      "date": "2026-09-13",
+      "sessionNumber": 2,
+      "startTime": "19:27",
+      "endTime": "23:38",
+      "durationSeconds": 15060,
+      "gmvCents": 563753,
       "notes": "Session 2"
     }
   ],
