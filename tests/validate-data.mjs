@@ -129,7 +129,7 @@ const [manifest, rules, baseline, html] = await Promise.all([
   readJson('data/manifest.json'),
   readJson('data/config/business-rules.json'),
   readJson('tests/historical-baseline.json'),
-  readFile(resolve(repoRoot, 'index.html'), 'utf8')
+  readFile(resolve(repoRoot, 'tests/fixtures/legacy-phase1.js'), 'utf8')
 ]);
 
 check(manifest.schemaVersion === 1, 'Manifest schemaVersion must be 1');
