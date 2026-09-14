@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import '../js/data-layer.js';
+const { V2 } = globalThis;
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const errors = [];
@@ -234,7 +236,9 @@ for (const descriptor of manifest.months) {
   const totals = monthTotals(month, rules);
   dailyTotal += Object.keys(totals.dailyGmvCents).length;
   const frozen = baseline.months[descriptor.period];
-  if (frozen) {
+  if (baseline.frozenPeriods.includes(descriptor.period)) {
+    check(!!frozen, `${descriptor.period}: missing frozen baseline`);
+    if (!frozen) continue;
     for (const field of ['sessionCount', 'gmvCents', 'approvedPayrollSeconds', 'commissionCents', 'basicSalaryCents']) {
       check(totals[field] === frozen[field], `${descriptor.period}: frozen ${field} mismatch`);
     }
@@ -263,6 +267,33 @@ let reconciledScheduleDays = 0;
 
 for (let monthNumber = 1; monthNumber <= 9; monthNumber += 1) {
   const period = `2026-${String(monthNumber).padStart(2, '0')}`;
+  if (!baseline.frozenPeriods.includes(period)) {
+    const month = loadedMonths.get(period);
+    const descriptor = manifest.months.find(item => item.period === period);
+    check(descriptor?.status === 'open', period + ': non-frozen month must be open');
+    try { V2.validateRules(rules); V2.validateMonth(month, descriptor, rules); }
+    catch (error) { check(false, period + ': ' + error.message); }
+    const expected = monthTotals(month, rules);
+    const actual = V2.totals(month, rules);
+    for (const field of ['sessionCount','gmvCents','approvedPayrollSeconds','commissionCents','basicSalaryCents']) {
+      check(actual[field] === expected[field], period + ': live calculation mismatch: ' + field);
+    }
+    check(sameObject(actual.dailyGmvCents, expected.dailyGmvCents), period + ': live daily totals mismatch');
+    const adapted = V2.adaptMonth(month).entries.filter(entry => !entry.attendance);
+    check(adapted.length === month.sessions.length && adapted.every((entry, i) =>
+      entry.id === month.sessions[i].id && entry.gmvCents === month.sessions[i].gmvCents
+      && entry.dur === month.sessions[i].durationSeconds / 3600), period + ': live adapter mismatch');
+    // Schedule protection is independent of live sales and attendance updates.
+    const planned = scheduleSources[monthNumber] || {};
+    check(Object.keys(planned).length === month.schedule.length && Object.entries(planned).every(([date, day]) => {
+      const migrated = month.schedule.find(item => item.date === date);
+      return migrated && migrated.label === day.label
+        && JSON.stringify(migrated.slots) === JSON.stringify(parsePlannedSlots(day.label));
+    }), period + ': schedule reconciliation failed');
+    reconciledScheduleDays += Object.keys(planned).length;
+    console.log('Live JSON reconciliation: ' + period + ', ' + expected.sessionCount + ' sessions, ' + Object.keys(expected.dailyGmvCents).length + ' daily totals, ' + money(expected.gmvCents) + ', payroll ' + hours(expected.approvedPayrollSeconds));
+    continue;
+  }
   const v1 = preloaded[`eskayvie_2026_${monthNumber}`];
   const v2 = loadedMonths.get(period);
   const v1Sessions = v1.entries.filter(entry => !/leave/i.test(entry.notes || ''));
@@ -349,8 +380,8 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(`Validation PASS: ${sessionTotal} globally unique sessions across ${loadedMonths.size} months.`);
-  console.log(`Frozen baseline PASS: ${baseline.frozenPeriods.length} completed periods and ${dailyTotal - Object.keys(groupDailyGmv(loadedMonths.get('2026-09').sessions)).length} historical daily totals.`);
-  console.log(`Daily V1/V2 reconciliation PASS: ${reconciledDailyDays} daily totals.`);
+  console.log(`Frozen baseline PASS: ${baseline.frozenPeriods.length} completed periods and ${baseline.frozenPeriods.reduce((sum, period) => sum + Object.keys(groupDailyGmv(loadedMonths.get(period).sessions)).length, 0)} historical daily totals.`);
+  console.log(`Frozen daily V1/V2 reconciliation PASS: ${reconciledDailyDays} daily totals.`);
   console.log(`Schedule V1/V2 reconciliation PASS: ${reconciledScheduleDays} planned days, including split slots.`);
   console.log('');
   console.log('| Month | Sessions V1 | Sessions V2 | GMV V1 | GMV V2 | Approved Hours V1 | Approved Hours V2 | Commission V1 | Commission V2 | Status |');

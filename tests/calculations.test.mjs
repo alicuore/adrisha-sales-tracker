@@ -91,32 +91,19 @@ test('multiple sessions on one date group into one daily GMV without losing sess
   });
 });
 
-test('September analytics are derived only from session records', async () => {
-  const [rules, september] = await Promise.all([
-    readJson('data/config/business-rules.json'),
-    readJson('data/2026/09-september.json')
-  ]);
-  const result = calculateMonth(september.sessions, september.approvedPayrollSeconds, rules);
-
-  assert.equal(result.sessionCount, 17);
-  assert.equal(result.gmvCents, 6_966_418);
-  assert.equal(result.dailyGmvCents['2026-09-01'], 1_010_649);
-  assert.equal(result.dailyGmvCents['2026-09-10'], 273_001);
-  assert.equal(result.dailyGmvCents['2026-09-11'], 239_953);
-  assert.equal(result.dailyGmvCents['2026-09-12'], 337_010);
-  assert.equal(result.dailyGmvCents['2026-09-13'], 563_753);
+test('synthetic month calculations preserve daily grouping, zero-GMV sessions and approved payroll', async () => {
+  const rules = await readJson('data/config/business-rules.json');
+  const sessions = [
+    {date:'2026-09-01',gmvCents:3_000_000,durationSeconds:3600},
+    {date:'2026-09-01',gmvCents:0,durationSeconds:1800},
+    {date:'2026-09-02',gmvCents:3_500_000,durationSeconds:3600}
+  ];
+  const result = calculateMonth(sessions, 7200, rules);
+  assert.equal(result.sessionCount, 3);
+  assert.equal(result.gmvCents, 6_500_000);
+  assert.deepEqual(result.dailyGmvCents, {'2026-09-01':3_000_000,'2026-09-02':3_500_000});
   assert.equal(result.commissionCents, 480_000);
-  assert.equal(result.basicSalaryCents, 73_639);
-  assert.equal(september.approvedPayrollSeconds, 159_060);
-  for (const [id, durationSeconds] of [
-    ['2026-09-11-s01', 1380],
-    ['2026-09-13-s01', 1680]
-  ]) {
-    const session = september.sessions.find(item => item.id === id);
-    assert.ok(session, `Missing zero-GMV livestream ${id}`);
-    assert.equal(session.gmvCents, 0);
-    assert.equal(session.durationSeconds, durationSeconds);
-  }
+  assert.equal(result.basicSalaryCents, 3333);
 });
 
 test('approved payroll hours remain independent from summed session durations', async () => {
