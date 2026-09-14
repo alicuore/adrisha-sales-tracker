@@ -1,0 +1,40 @@
+name: Validate production data
+
+on:
+  push:
+    paths:
+      - 'data/**/*.json'
+      - 'js/**'
+      - 'index.html'
+      - 'tests/**'
+      - '.github/workflows/validate-data.yml'
+  pull_request:
+    paths:
+      - 'data/**/*.json'
+      - 'js/**'
+      - 'index.html'
+      - 'tests/**'
+      - '.github/workflows/validate-data.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate JSON and run tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate production JSON
+        run: node tests/validate-data.mjs
+      - name: Run existing tests
+        run: node --test tests/*.test.mjs
