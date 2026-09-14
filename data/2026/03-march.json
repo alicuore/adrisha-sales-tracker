@@ -1,0 +1,526 @@
+{
+  "schemaVersion": 1,
+  "period": "2026-03",
+  "status": "completed",
+  "ruleSetId": "2026-v1",
+  "approvedPayrollSeconds": 309146,
+  "source": {
+    "type": "runtime-effective-preloaded",
+    "branch": "dashboard-v2",
+    "commit": "248317d24591b40c69f24a852a4464f9dbdfe33c",
+    "legacyKey": "eskayvie_2026_3"
+  },
+  "sessions": [
+    {
+      "id": "2026-03-01-s01",
+      "legacyId": "m01",
+      "date": "2026-03-01",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 11760,
+      "gmvCents": 223200,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-02-s01",
+      "legacyId": "m02",
+      "date": "2026-03-02",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 11040,
+      "gmvCents": 439369,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-03-s01",
+      "legacyId": "m03",
+      "date": "2026-03-03",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 9660,
+      "gmvCents": 214568,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-04-s01",
+      "legacyId": "m04",
+      "date": "2026-03-04",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3720,
+      "gmvCents": 69995,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-04-s02",
+      "legacyId": "m05",
+      "date": "2026-03-04",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 5760,
+      "gmvCents": 99172,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-05-s01",
+      "legacyId": "m06",
+      "date": "2026-03-05",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4140,
+      "gmvCents": 43764,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-05-s02",
+      "legacyId": "m07",
+      "date": "2026-03-05",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7080,
+      "gmvCents": 207958,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-05-s03",
+      "legacyId": "m08",
+      "date": "2026-03-05",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4740,
+      "gmvCents": 78663,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-03-06-s01",
+      "legacyId": "m09",
+      "date": "2026-03-06",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 9780,
+      "gmvCents": 191810,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-06-s02",
+      "legacyId": "m10",
+      "date": "2026-03-06",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3000,
+      "gmvCents": 60077,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-07-s01",
+      "legacyId": "m11",
+      "date": "2026-03-07",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3600,
+      "gmvCents": 14186,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-07-s02",
+      "legacyId": "m12",
+      "date": "2026-03-07",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3900,
+      "gmvCents": 84180,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-07-s03",
+      "legacyId": "m13",
+      "date": "2026-03-07",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 6360,
+      "gmvCents": 175532,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-03-08-s01",
+      "legacyId": "m14",
+      "date": "2026-03-08",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2760,
+      "gmvCents": 0,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-08-s02",
+      "legacyId": "m15",
+      "date": "2026-03-08",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7260,
+      "gmvCents": 92751,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-09-s01",
+      "legacyId": "m16",
+      "date": "2026-03-09",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 5160,
+      "gmvCents": 29050,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-09-s02",
+      "legacyId": "m17",
+      "date": "2026-03-09",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 1020,
+      "gmvCents": 0,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-10-s01",
+      "legacyId": "m18",
+      "date": "2026-03-10",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 6960,
+      "gmvCents": 79037,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-10-s02",
+      "legacyId": "m19",
+      "date": "2026-03-10",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3780,
+      "gmvCents": 36455,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-10-s03",
+      "legacyId": "m20",
+      "date": "2026-03-10",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4980,
+      "gmvCents": 33662,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-03-11-s01",
+      "legacyId": "m21",
+      "date": "2026-03-11",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2460,
+      "gmvCents": 32777,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-11-s02",
+      "legacyId": "m22",
+      "date": "2026-03-11",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7080,
+      "gmvCents": 99029,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-11-s03",
+      "legacyId": "m23",
+      "date": "2026-03-11",
+      "sessionNumber": 3,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4560,
+      "gmvCents": 46658,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-03-12-s01",
+      "legacyId": "m24",
+      "date": "2026-03-12",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 12000,
+      "gmvCents": 189673,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-13-s01",
+      "legacyId": "m25",
+      "date": "2026-03-13",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 10860,
+      "gmvCents": 174200,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-14-s01",
+      "legacyId": "m26",
+      "date": "2026-03-14",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 9300,
+      "gmvCents": 71775,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-15-s01",
+      "legacyId": "m27",
+      "date": "2026-03-15",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 11880,
+      "gmvCents": 242558,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-16-s01",
+      "legacyId": "m28",
+      "date": "2026-03-16",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 2160,
+      "gmvCents": 13477,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-16-s02",
+      "legacyId": "m29",
+      "date": "2026-03-16",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3600,
+      "gmvCents": 0,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-17-s01",
+      "legacyId": "m30",
+      "date": "2026-03-17",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 8520,
+      "gmvCents": 104787,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-18-s01",
+      "legacyId": "m31",
+      "date": "2026-03-18",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 6000,
+      "gmvCents": 59762,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-18-s02",
+      "legacyId": "m32",
+      "date": "2026-03-18",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 8040,
+      "gmvCents": 118966,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-19-s01",
+      "legacyId": "m33",
+      "date": "2026-03-19",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 4080,
+      "gmvCents": 0,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-24-s01",
+      "legacyId": "m34",
+      "date": "2026-03-24",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7680,
+      "gmvCents": 220256,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-24-s02",
+      "legacyId": "m35",
+      "date": "2026-03-24",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 7860,
+      "gmvCents": 213481,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-25-s01",
+      "legacyId": "m36",
+      "date": "2026-03-25",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 9660,
+      "gmvCents": 139120,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-26-s01",
+      "legacyId": "m37",
+      "date": "2026-03-26",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 13860,
+      "gmvCents": 414914,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-27-s01",
+      "legacyId": "m38",
+      "date": "2026-03-27",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 12540,
+      "gmvCents": 550500,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-28-s01",
+      "legacyId": "m39",
+      "date": "2026-03-28",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 3720,
+      "gmvCents": 74415,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-28-s02",
+      "legacyId": "m40",
+      "date": "2026-03-28",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 5940,
+      "gmvCents": 135827,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-03-29-s01",
+      "legacyId": "m41",
+      "date": "2026-03-29",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 10140,
+      "gmvCents": 263537,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-30-s01",
+      "legacyId": "m42",
+      "date": "2026-03-30",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 11400,
+      "gmvCents": 403396,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-03-31-s01",
+      "legacyId": "m43",
+      "date": "2026-03-31",
+      "sessionNumber": 1,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 6148,
+      "gmvCents": 0,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-03-31-s02",
+      "legacyId": "m44",
+      "date": "2026-03-31",
+      "sessionNumber": 2,
+      "startTime": null,
+      "endTime": null,
+      "durationSeconds": 17280,
+      "gmvCents": 1159428,
+      "notes": "Session 2"
+    }
+  ],
+  "attendance": [
+    {
+      "date": "2026-03-20",
+      "status": "leave",
+      "legacyId": "mR1",
+      "notes": "🌙 Raya Leave"
+    },
+    {
+      "date": "2026-03-21",
+      "status": "leave",
+      "legacyId": "mR2",
+      "notes": "🌙 Raya Leave"
+    },
+    {
+      "date": "2026-03-22",
+      "status": "leave",
+      "legacyId": "mR3",
+      "notes": "🌙 Raya Leave"
+    },
+    {
+      "date": "2026-03-23",
+      "status": "leave",
+      "legacyId": "mR4",
+      "notes": "🌙 Raya Leave"
+    }
+  ],
+  "schedule": []
+}

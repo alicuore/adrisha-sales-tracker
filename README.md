@@ -147,3 +147,38 @@ Developed as a personal productivity platform.
 ---
 
 > **"The goal is not full automation. The goal is to automate everything except the final business decision."**
+## V2 dashboard data (dashboard-v2)
+
+The read-only dashboard loads `data/manifest.json`, then
+`data/config/business-rules.json` and every month listed in the manifest.
+`js/data-layer.js` validates the complete load before providing a compatibility
+adapter to the existing views. Requests use `cache: no-store`; a failed request
+or invalid dataset displays an error without any embedded or browser-data fallback.
+Reload the page to obtain subsequently published JSON changes.
+
+GMV sums use integer cents. Salary uses approved payroll seconds, independently
+of session durations. Business rules supply the hourly rate, 120-hour target,
+and commission tiers. Actual sessions take precedence over planned attendance.
+The JSON schedule is preserved, including multiple slots per day.
+
+Add/Edit/Delete and payroll editing have been removed. All legacy `eskayvie_*`
+localStorage keys are removed where browser permissions allow. No business data
+is read from or written to localStorage. Unrelated browser preferences are left alone.
+
+Run checks with Node.js:
+
+```sh
+node tests/validate-data.mjs
+node --test tests/*.test.mjs
+```
+
+`tests/fixtures/legacy-phase1.js` is the frozen pre-adapter migration reference
+from commit `b7414e44fd895cf410bed4229ca11adc79b69d8a`. It contains the legacy
+PRELOADED dataset and schedules solely for independent Phase 1 reconciliation;
+it is never loaded by the dashboard. January–August also retain their separate
+frozen historical baseline. Future approved live-data updates should update
+appropriate tests explicitly, not silently overwrite historical baselines.
+
+Serve the repository through a local HTTP server for browser testing (not
+`file://`). Chart.js and fonts retain the existing external CDN dependencies.
+Phase 2 is developed on `dashboard-v2`; merging/deploying production is separate.

@@ -1,0 +1,1092 @@
+{
+  "schemaVersion": 1,
+  "period": "2026-05",
+  "status": "completed",
+  "ruleSetId": "2026-v1",
+  "approvedPayrollSeconds": 443340,
+  "source": {
+    "type": "runtime-effective-preloaded",
+    "branch": "dashboard-v2",
+    "commit": "248317d24591b40c69f24a852a4464f9dbdfe33c",
+    "legacyKey": "eskayvie_2026_5"
+  },
+  "sessions": [
+    {
+      "id": "2026-05-01-s01",
+      "legacyId": "s01",
+      "date": "2026-05-01",
+      "sessionNumber": 1,
+      "startTime": "20:06",
+      "endTime": "23:56",
+      "durationSeconds": 13800,
+      "gmvCents": 500500,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-05-02-s01",
+      "legacyId": "s02",
+      "date": "2026-05-02",
+      "sessionNumber": 1,
+      "startTime": "19:07",
+      "endTime": "19:48",
+      "durationSeconds": 2460,
+      "gmvCents": 127376,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-02-s02",
+      "legacyId": "s03",
+      "date": "2026-05-02",
+      "sessionNumber": 2,
+      "startTime": "20:00",
+      "endTime": "00:00",
+      "durationSeconds": 14400,
+      "gmvCents": 751432,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-03-s01",
+      "legacyId": "s04",
+      "date": "2026-05-03",
+      "sessionNumber": 1,
+      "startTime": "19:08",
+      "endTime": "19:52",
+      "durationSeconds": 2640,
+      "gmvCents": 225238,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-03-s02",
+      "legacyId": "s05",
+      "date": "2026-05-03",
+      "sessionNumber": 2,
+      "startTime": "19:56",
+      "endTime": "20:20",
+      "durationSeconds": 1440,
+      "gmvCents": 104308,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-03-s03",
+      "legacyId": "s06",
+      "date": "2026-05-03",
+      "sessionNumber": 3,
+      "startTime": "20:23",
+      "endTime": "23:53",
+      "durationSeconds": 12600,
+      "gmvCents": 993581,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-04-s01",
+      "legacyId": "s07",
+      "date": "2026-05-04",
+      "sessionNumber": 1,
+      "startTime": "15:03",
+      "endTime": "17:09",
+      "durationSeconds": 7560,
+      "gmvCents": 311163,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-04-s02",
+      "legacyId": "s08",
+      "date": "2026-05-04",
+      "sessionNumber": 2,
+      "startTime": "17:17",
+      "endTime": "19:00",
+      "durationSeconds": 6180,
+      "gmvCents": 154599,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-05-s01",
+      "legacyId": "s09",
+      "date": "2026-05-05",
+      "sessionNumber": 1,
+      "startTime": "15:04",
+      "endTime": "18:58",
+      "durationSeconds": 14040,
+      "gmvCents": 736884,
+      "notes": "1 session"
+    },
+    {
+      "id": "2026-05-06-s01",
+      "legacyId": "s10",
+      "date": "2026-05-06",
+      "sessionNumber": 1,
+      "startTime": "15:08",
+      "endTime": "16:56",
+      "durationSeconds": 6480,
+      "gmvCents": 158684,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-06-s02",
+      "legacyId": "s11",
+      "date": "2026-05-06",
+      "sessionNumber": 2,
+      "startTime": "17:00",
+      "endTime": "18:06",
+      "durationSeconds": 3960,
+      "gmvCents": 138345,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-06-s03",
+      "legacyId": "s12",
+      "date": "2026-05-06",
+      "sessionNumber": 3,
+      "startTime": "18:10",
+      "endTime": "18:57",
+      "durationSeconds": 2820,
+      "gmvCents": 85554,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-07-s01",
+      "legacyId": "s13",
+      "date": "2026-05-07",
+      "sessionNumber": 1,
+      "startTime": "11:02",
+      "endTime": "11:45",
+      "durationSeconds": 2580,
+      "gmvCents": 21112,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-07-s02",
+      "legacyId": "s14",
+      "date": "2026-05-07",
+      "sessionNumber": 2,
+      "startTime": "11:47",
+      "endTime": "14:13",
+      "durationSeconds": 8760,
+      "gmvCents": 435015,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-07-s03",
+      "legacyId": "s15",
+      "date": "2026-05-07",
+      "sessionNumber": 3,
+      "startTime": "14:40",
+      "endTime": "15:01",
+      "durationSeconds": 1260,
+      "gmvCents": 84355,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-08-s01",
+      "legacyId": "s16",
+      "date": "2026-05-08",
+      "sessionNumber": 1,
+      "startTime": "11:04",
+      "endTime": "12:45",
+      "durationSeconds": 6060,
+      "gmvCents": 213037,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-08-s02",
+      "legacyId": "s17",
+      "date": "2026-05-08",
+      "sessionNumber": 2,
+      "startTime": "12:58",
+      "endTime": "14:59",
+      "durationSeconds": 7260,
+      "gmvCents": 323158,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-09-s01",
+      "legacyId": "s18",
+      "date": "2026-05-09",
+      "sessionNumber": 1,
+      "startTime": "10:35",
+      "endTime": "13:35",
+      "durationSeconds": 10800,
+      "gmvCents": 490556,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-09-s02",
+      "legacyId": "s19",
+      "date": "2026-05-09",
+      "sessionNumber": 2,
+      "startTime": "13:42",
+      "endTime": "14:59",
+      "durationSeconds": 4620,
+      "gmvCents": 201949,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-09-s03",
+      "legacyId": "s20",
+      "date": "2026-05-09",
+      "sessionNumber": 3,
+      "startTime": "19:03",
+      "endTime": "19:13",
+      "durationSeconds": 600,
+      "gmvCents": 27999,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-09-s04",
+      "legacyId": "s21",
+      "date": "2026-05-09",
+      "sessionNumber": 4,
+      "startTime": "19:16",
+      "endTime": "22:58",
+      "durationSeconds": 13320,
+      "gmvCents": 505327,
+      "notes": "Session 4"
+    },
+    {
+      "id": "2026-05-10-s01",
+      "legacyId": "s22",
+      "date": "2026-05-10",
+      "sessionNumber": 1,
+      "startTime": "06:59",
+      "endTime": "09:25",
+      "durationSeconds": 8760,
+      "gmvCents": 475251,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-10-s02",
+      "legacyId": "s23",
+      "date": "2026-05-10",
+      "sessionNumber": 2,
+      "startTime": "09:31",
+      "endTime": "10:52",
+      "durationSeconds": 4860,
+      "gmvCents": 153713,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-11-s01",
+      "legacyId": "s24",
+      "date": "2026-05-11",
+      "sessionNumber": 1,
+      "startTime": "07:39",
+      "endTime": "07:42",
+      "durationSeconds": 180,
+      "gmvCents": 15400,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-11-s02",
+      "legacyId": "s25",
+      "date": "2026-05-11",
+      "sessionNumber": 2,
+      "startTime": "07:44",
+      "endTime": "10:58",
+      "durationSeconds": 11640,
+      "gmvCents": 647669,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-12-s01",
+      "legacyId": "s26",
+      "date": "2026-05-12",
+      "sessionNumber": 1,
+      "startTime": "07:52",
+      "endTime": "10:39",
+      "durationSeconds": 10020,
+      "gmvCents": 635688,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-12-s02",
+      "legacyId": "s27",
+      "date": "2026-05-12",
+      "sessionNumber": 2,
+      "startTime": "10:43",
+      "endTime": "10:58",
+      "durationSeconds": 900,
+      "gmvCents": 15400,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-13-s01",
+      "legacyId": "s28",
+      "date": "2026-05-13",
+      "sessionNumber": 1,
+      "startTime": "19:06",
+      "endTime": "19:39",
+      "durationSeconds": 1980,
+      "gmvCents": 43874,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-13-s02",
+      "legacyId": "s29",
+      "date": "2026-05-13",
+      "sessionNumber": 2,
+      "startTime": "19:51",
+      "endTime": "23:55",
+      "durationSeconds": 14640,
+      "gmvCents": 617478,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-14-s01",
+      "legacyId": "s30",
+      "date": "2026-05-14",
+      "sessionNumber": 1,
+      "startTime": "18:58",
+      "endTime": "22:06",
+      "durationSeconds": 11280,
+      "gmvCents": 495605,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-14-s02",
+      "legacyId": "s31",
+      "date": "2026-05-14",
+      "sessionNumber": 2,
+      "startTime": "22:10",
+      "endTime": "23:32",
+      "durationSeconds": 4920,
+      "gmvCents": 145175,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-15-s01",
+      "legacyId": "s32",
+      "date": "2026-05-15",
+      "sessionNumber": 1,
+      "startTime": "19:00",
+      "endTime": "19:13",
+      "durationSeconds": 780,
+      "gmvCents": 8906,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-15-s02",
+      "legacyId": "s33",
+      "date": "2026-05-15",
+      "sessionNumber": 2,
+      "startTime": "19:18",
+      "endTime": "20:24",
+      "durationSeconds": 3960,
+      "gmvCents": 46997,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-15-s03",
+      "legacyId": "s34",
+      "date": "2026-05-15",
+      "sessionNumber": 3,
+      "startTime": "20:44",
+      "endTime": "23:35",
+      "durationSeconds": 10260,
+      "gmvCents": 455240,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-16-s01",
+      "legacyId": "s35",
+      "date": "2026-05-16",
+      "sessionNumber": 1,
+      "startTime": "15:05",
+      "endTime": "16:28",
+      "durationSeconds": 4980,
+      "gmvCents": 62249,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-16-s02",
+      "legacyId": "s36",
+      "date": "2026-05-16",
+      "sessionNumber": 2,
+      "startTime": "16:41",
+      "endTime": "17:27",
+      "durationSeconds": 2760,
+      "gmvCents": 87503,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-16-s03",
+      "legacyId": "s37",
+      "date": "2026-05-16",
+      "sessionNumber": 3,
+      "startTime": "17:36",
+      "endTime": "18:46",
+      "durationSeconds": 4200,
+      "gmvCents": 50742,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-17-s01",
+      "legacyId": "s38",
+      "date": "2026-05-17",
+      "sessionNumber": 1,
+      "startTime": "15:02",
+      "endTime": "16:43",
+      "durationSeconds": 6060,
+      "gmvCents": 151868,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-17-s02",
+      "legacyId": "s39",
+      "date": "2026-05-17",
+      "sessionNumber": 2,
+      "startTime": "16:55",
+      "endTime": "18:00",
+      "durationSeconds": 3900,
+      "gmvCents": 121517,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-17-s03",
+      "legacyId": "s40",
+      "date": "2026-05-17",
+      "sessionNumber": 3,
+      "startTime": "18:02",
+      "endTime": "18:41",
+      "durationSeconds": 2340,
+      "gmvCents": 68849,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-18-s01",
+      "legacyId": "s41",
+      "date": "2026-05-18",
+      "sessionNumber": 1,
+      "startTime": "15:06",
+      "endTime": "16:35",
+      "durationSeconds": 5340,
+      "gmvCents": 151316,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-18-s02",
+      "legacyId": "s42",
+      "date": "2026-05-18",
+      "sessionNumber": 2,
+      "startTime": "16:39",
+      "endTime": "18:54",
+      "durationSeconds": 8100,
+      "gmvCents": 263800,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-19-s01",
+      "legacyId": "s43",
+      "date": "2026-05-19",
+      "sessionNumber": 1,
+      "startTime": "11:00",
+      "endTime": "13:19",
+      "durationSeconds": 8340,
+      "gmvCents": 230807,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-19-s02",
+      "legacyId": "s44",
+      "date": "2026-05-19",
+      "sessionNumber": 2,
+      "startTime": "13:33",
+      "endTime": "14:59",
+      "durationSeconds": 5160,
+      "gmvCents": 176803,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-20-s01",
+      "legacyId": "s45",
+      "date": "2026-05-20",
+      "sessionNumber": 1,
+      "startTime": "11:06",
+      "endTime": "12:35",
+      "durationSeconds": 5340,
+      "gmvCents": 204858,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-20-s02",
+      "legacyId": "s46",
+      "date": "2026-05-20",
+      "sessionNumber": 2,
+      "startTime": "12:40",
+      "endTime": "13:04",
+      "durationSeconds": 1440,
+      "gmvCents": 79086,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-20-s03",
+      "legacyId": "s47",
+      "date": "2026-05-20",
+      "sessionNumber": 3,
+      "startTime": "13:31",
+      "endTime": "14:59",
+      "durationSeconds": 5280,
+      "gmvCents": 155180,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-21-s01",
+      "legacyId": "s48",
+      "date": "2026-05-21",
+      "sessionNumber": 1,
+      "startTime": "11:04",
+      "endTime": "13:01",
+      "durationSeconds": 7020,
+      "gmvCents": 395952,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-21-s02",
+      "legacyId": "s49",
+      "date": "2026-05-21",
+      "sessionNumber": 2,
+      "startTime": "13:59",
+      "endTime": "14:59",
+      "durationSeconds": 3600,
+      "gmvCents": 192540,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-22-s01",
+      "legacyId": "s50",
+      "date": "2026-05-22",
+      "sessionNumber": 1,
+      "startTime": "07:30",
+      "endTime": "08:28",
+      "durationSeconds": 3480,
+      "gmvCents": 345665,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-22-s02",
+      "legacyId": "s51",
+      "date": "2026-05-22",
+      "sessionNumber": 2,
+      "startTime": "08:30",
+      "endTime": "10:55",
+      "durationSeconds": 8700,
+      "gmvCents": 545794,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-23-s01",
+      "legacyId": "s52",
+      "date": "2026-05-23",
+      "sessionNumber": 1,
+      "startTime": "06:57",
+      "endTime": "07:27",
+      "durationSeconds": 1800,
+      "gmvCents": 56781,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-23-s02",
+      "legacyId": "s53",
+      "date": "2026-05-23",
+      "sessionNumber": 2,
+      "startTime": "07:32",
+      "endTime": "09:46",
+      "durationSeconds": 8040,
+      "gmvCents": 769915,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-25-s01",
+      "legacyId": "s54",
+      "date": "2026-05-25",
+      "sessionNumber": 1,
+      "startTime": "18:56",
+      "endTime": "23:23",
+      "durationSeconds": 16020,
+      "gmvCents": 1071173,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-26-s01",
+      "legacyId": "s55",
+      "date": "2026-05-26",
+      "sessionNumber": 1,
+      "startTime": "18:04",
+      "endTime": "18:48",
+      "durationSeconds": 2640,
+      "gmvCents": 51455,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-26-s02",
+      "legacyId": "s56",
+      "date": "2026-05-26",
+      "sessionNumber": 2,
+      "startTime": "19:26",
+      "endTime": "21:56",
+      "durationSeconds": 9000,
+      "gmvCents": 261624,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-26-s03",
+      "legacyId": "s57",
+      "date": "2026-05-26",
+      "sessionNumber": 3,
+      "startTime": "22:08",
+      "endTime": "23:27",
+      "durationSeconds": 4740,
+      "gmvCents": 124121,
+      "notes": "Session 3"
+    },
+    {
+      "id": "2026-05-27-s01",
+      "legacyId": "s58",
+      "date": "2026-05-27",
+      "sessionNumber": 1,
+      "startTime": "16:20",
+      "endTime": "18:20",
+      "durationSeconds": 7200,
+      "gmvCents": 250698,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-27-s02",
+      "legacyId": "s59",
+      "date": "2026-05-27",
+      "sessionNumber": 2,
+      "startTime": "19:07",
+      "endTime": "23:17",
+      "durationSeconds": 15000,
+      "gmvCents": 1069936,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-28-s01",
+      "legacyId": "s60",
+      "date": "2026-05-28",
+      "sessionNumber": 1,
+      "startTime": "15:04",
+      "endTime": "17:11",
+      "durationSeconds": 7620,
+      "gmvCents": 248365,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-28-s02",
+      "legacyId": "s61",
+      "date": "2026-05-28",
+      "sessionNumber": 2,
+      "startTime": "17:15",
+      "endTime": "18:57",
+      "durationSeconds": 6120,
+      "gmvCents": 169020,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-29-s01",
+      "legacyId": "s62",
+      "date": "2026-05-29",
+      "sessionNumber": 1,
+      "startTime": "15:03",
+      "endTime": "15:39",
+      "durationSeconds": 2160,
+      "gmvCents": 16325,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-29-s02",
+      "legacyId": "s63",
+      "date": "2026-05-29",
+      "sessionNumber": 2,
+      "startTime": "15:42",
+      "endTime": "18:58",
+      "durationSeconds": 11760,
+      "gmvCents": 469394,
+      "notes": "Session 2"
+    },
+    {
+      "id": "2026-05-30-s01",
+      "legacyId": "s64",
+      "date": "2026-05-30",
+      "sessionNumber": 1,
+      "startTime": "15:04",
+      "endTime": "18:57",
+      "durationSeconds": 13980,
+      "gmvCents": 442625,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-31-s01",
+      "legacyId": "s65",
+      "date": "2026-05-31",
+      "sessionNumber": 1,
+      "startTime": "18:07",
+      "endTime": "18:41",
+      "durationSeconds": 2040,
+      "gmvCents": 39724,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-05-31-s02",
+      "legacyId": "s66",
+      "date": "2026-05-31",
+      "sessionNumber": 2,
+      "startTime": "18:46",
+      "endTime": "00:42",
+      "durationSeconds": 21360,
+      "gmvCents": 1510000,
+      "notes": "Session 2"
+    }
+  ],
+  "attendance": [
+    {
+      "date": "2026-05-24",
+      "status": "leave",
+      "legacyId": "mRL1",
+      "notes": "🏖️ Replacement Leave (Off Day)"
+    }
+  ],
+  "schedule": [
+    {
+      "date": "2026-05-01",
+      "label": "8PM – 12AM",
+      "slots": [
+        {
+          "startTime": "20:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-02",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-03",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-04",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-05",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-06",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-07",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-08",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-09",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-10",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-12",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-13",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-14",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-15",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-16",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-17",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-18",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-19",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-20",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-21",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-22",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-23",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-24",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-25",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-26",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-27",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-05-28",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-29",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-30",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-05-31",
+      "label": "8PM – 12AM",
+      "slots": [
+        {
+          "startTime": "20:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    }
+  ]
+}
