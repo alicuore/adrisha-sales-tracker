@@ -665,7 +665,7 @@ async function boot(){
   document.getElementById('rateLabel').textContent=`Basic Salary (RM${DATA.rules.hourlyRate}/hr)`;
   ALL_SCHEDULES=DATA.schedules;scheduleActiveKey=ALL_SCHEDULES.at(-1)?.key;
   document.body.classList.remove('loading');
-  document.getElementById('dataStatus').textContent='Read-only · Data managed from GitHub';
+  document.getElementById('dataStatus').textContent='Live Data · Built by Ali with ChatGPT Codex';
   init();
  } catch(error){
   document.body.classList.remove('loading');document.body.classList.add('failed');
