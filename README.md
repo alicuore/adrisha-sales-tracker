@@ -1,184 +1,125 @@
 # Adrisha's Sales Tracker
 
-> **AI-Powered Livestream Analytics Platform**
+A personal livestream sales, GMV, payroll and commission tracking dashboard built by Ali with ChatGPT Codex and deployed through GitHub Pages.
 
----
+[Live dashboard](https://alicuore.github.io/adrisha-sales-tracker/)
 
-## 🚀 Vision
+## Current Status
 
-Adrisha's Sales Tracker is successful when the entire reporting workflow is automated, requiring only a single human decision:
+Dashboard V2 is live in production on `main`. The dashboard:
 
-**Approve** or **Reject**.
+- Loads authoritative business data from JSON.
+- Is read-only in the browser and does not use localStorage as a business-data source.
+- Automatically reflects published GitHub data when opened or reloaded.
+- Supports monthly tracking, comparison, yearly overview and schedules.
+- Is responsive for desktop and mobile.
 
----
+## Current Workflow
 
-## 🎯 Mission
-
-Eliminate repetitive work while preserving human judgment.
-
-The platform is designed to automate livestream reporting from screenshot collection through OCR, validation, history tracking and dashboard publishing, while ensuring every published change is approved by the Product Owner.
-
----
-
-## ✨ Core Principles
-
-- Human approval always comes first.
-- Automation assists, not replaces.
-- Every change must be traceable.
-- One Single Source of Truth.
-- One sprint at a time.
-
----
-
-## 📊 Current Workflow
-
-```
-Screenshot
-      │
-      ▼
-OCR Extraction
-      │
-      ▼
-Business Rules
-      │
-      ▼
-Approval Required
-      │
-      ▼
-Database
-      │
-      ▼
-Dashboard
-      │
-      ▼
-GitHub Pages
+```text
+Sales screenshot / confirmed sales data
+        ↓
+Monthly ChatGPT sales-tracking chat
+        ↓
+Sales, sessions, payroll and commission verified
+        ↓
+ChatGPT generates a CODEX UPDATE PROMPT
+        ↓
+Codex updates the relevant monthly JSON
+        ↓
+Repository validation/tests
+        ↓
+Human approval
+        ↓
+Commit + push to origin/main
+        ↓
+GitHub Pages updates the live dashboard
 ```
 
----
+During weekends or periods without laptop access, the latest Codex prompt may contain all unpublished changes cumulatively. Existing sessions are corrected in place rather than duplicated.
 
-## 🏗 Current Features
+## Source of Truth
 
-- Livestream Dashboard
-- Monthly Sales Tracking
-- GMV Monitoring
-- Session Tracking
-- GitHub Pages Deployment
+- Published business data: `data/2026/*.json`
+- Business rules: `data/config/business-rules.json`
+- Month list: `data/manifest.json`
 
----
+GMV is stored as integer cents. Durations and payroll are stored as integer seconds. Approved payroll hours are independent from summed session duration.
 
-## 🚧 Planned Features
+Browser localStorage cannot override published business data. Actual livestream sessions take precedence over planned leave/off status.
 
-- OCR Screenshot Import
-- Automatic Session Detection
-- GMV Update Detection
-- Approval Workflow
-- Audit History
-- Change Log
-- Dashboard Analytics
-- Mobile Responsive Dashboard
-- AI-assisted Validation
+## Historical Protection and Live-Month Validation
 
----
+January–August 2026 are frozen historical periods protected by historical baseline validation. Frozen periods are identified by `baseline.frozenPeriods` and must not silently change.
 
-## 📁 Repository Structure
+The current live month can receive legitimate new sessions and GMV corrections without updating frozen fixtures. Live-month updates still undergo schema, duplicate-ID, schedule, attendance, totals and business-rule validation.
 
-```
+## Repository Structure
+
+```text
 adrisha-sales-tracker/
-
 ├── index.html
 ├── README.md
-
-Future
-
-├── docs/
-├── assets/
-├── dashboard/
+├── js/
+│   └── data-layer.js
 ├── data/
-└── tools/
+│   ├── manifest.json
+│   ├── config/
+│   │   └── business-rules.json
+│   └── 2026/
+│       ├── 01-january.json
+│       ├── 02-february.json
+│       ├── 03-march.json
+│       ├── 04-april.json
+│       ├── 05-may.json
+│       ├── 06-june.json
+│       ├── 07-july.json
+│       ├── 08-august.json
+│       └── 09-september.json
+└── tests/
+    ├── validate-data.mjs
+    ├── calculations.test.mjs
+    ├── data-layer.test.mjs
+    ├── historical-baseline.json
+    └── fixtures/
+        └── legacy-phase1.js
 ```
 
----
+The legacy fixture is a test-only migration reference; the dashboard does not load it.
 
-## 🛣 Development Roadmap
+## Validation
 
-- ✅ Sprint 1 — Development Environment
-- ✅ Sprint 2 — Product Vision & Architecture
-- 🚧 Sprint 3 — Git Workflow
-- ⏳ Sprint 4 — Documentation
-- ⏳ Sprint 5 — OCR Engine
-- ⏳ Sprint 6 — Approval Workflow
-- ⏳ Sprint 7 — Automation
-
----
-
-## 👥 Project Roles
-
-### Product Owner
-
-Ali Zainal Abidin
-
-Responsible for:
-
-- Business Rules
-- Final Approval
-- Product Direction
-
----
-
-### Project Manager / Software Architect
-
-OpenAI ChatGPT
-
-Responsible for:
-
-- System Architecture
-- Software Design
-- Technical Planning
-- Development Guidance
-
----
-
-## 📜 License
-
-Private project.
-
-Developed as a personal productivity platform.
-
----
-
-> **"The goal is not full automation. The goal is to automate everything except the final business decision."**
-## V2 dashboard data (dashboard-v2)
-
-The read-only dashboard loads `data/manifest.json`, then
-`data/config/business-rules.json` and every month listed in the manifest.
-`js/data-layer.js` validates the complete load before providing a compatibility
-adapter to the existing views. Requests use `cache: no-store`; a failed request
-or invalid dataset displays an error without any embedded or browser-data fallback.
-Reload the page to obtain subsequently published JSON changes.
-
-GMV sums use integer cents. Salary uses approved payroll seconds, independently
-of session durations. Business rules supply the hourly rate, 120-hour target,
-and commission tiers. Actual sessions take precedence over planned attendance.
-The JSON schedule is preserved, including multiple slots per day.
-
-Add/Edit/Delete and payroll editing have been removed. All legacy `eskayvie_*`
-localStorage keys are removed where browser permissions allow. No business data
-is read from or written to localStorage. Unrelated browser preferences are left alone.
-
-Run checks with Node.js:
+Run the existing checks with Node.js:
 
 ```sh
 node tests/validate-data.mjs
 node --test tests/*.test.mjs
 ```
 
-`tests/fixtures/legacy-phase1.js` is the frozen pre-adapter migration reference
-from commit `b7414e44fd895cf410bed4229ca11adc79b69d8a`. It contains the legacy
-PRELOADED dataset and schedules solely for independent Phase 1 reconciliation;
-it is never loaded by the dashboard. January–August also retain their separate
-frozen historical baseline. Future approved live-data updates should update
-appropriate tests explicitly, not silently overwrite historical baselines.
+Routine production updates should pass validation before being committed and pushed. Preview the dashboard through a local HTTP server so JSON fetches work normally.
 
-Serve the repository through a local HTTP server for browser testing (not
-`file://`). Chart.js and fonts retain the existing external CDN dependencies.
-Phase 2 is developed on `dashboard-v2`; merging/deploying production is separate.
+## Project Roles
+
+### Product Owner
+
+Ali Zainal Abidin is responsible for business rules, data approval, product direction and final human approval before production changes.
+
+### AI Development Partner
+
+ChatGPT / Codex by OpenAI provides architecture and technical guidance, data-update instructions, validation support and development assistance. Code and repository changes are performed through Codex under human direction.
+
+## Deployment
+
+- Production branch: `main`
+- Hosting: GitHub Pages
+- Production updates are pushed to `origin/main`.
+- Routine sales updates normally modify only the relevant monthly JSON.
+- `index.html` should change only for deliberate dashboard UI/application changes.
+
+## Future Improvements
+
+- Easier phone-friendly publishing.
+- Reduced dependence on a local computer for routine updates.
+- Further workflow automation while preserving human approval.
+
+Built as a personal productivity project. Human approval remains the final gate before production changes.
