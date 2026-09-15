@@ -212,7 +212,6 @@ async function main() {
 
   const normalizedChanges = [];
   const targetedSessionIds = new Set();
-  let addedDurationSeconds = 0;
 
   for (let index = 0; index < payload.changes.length; index += 1) {
     const rawChange = payload.changes[index];
@@ -261,8 +260,6 @@ async function main() {
         fail(`Session ${session.id} conflicts with ${attendance.status} attendance on ${session.date}.`);
       }
 
-      addedDurationSeconds += session.durationSeconds;
-      if (!Number.isSafeInteger(addedDurationSeconds)) fail('Added session duration total is too large.');
       normalizedChanges.push({ operation, session });
       continue;
     }
@@ -285,15 +282,7 @@ async function main() {
     fail(`Expected monthly total ${expectedTotalCents} cents, but this batch would produce ${resultingTotal} cents.`);
   }
 
-  const resultingPayrollSeconds = originalMonth.approvedPayrollSeconds + addedDurationSeconds;
-  if (!Number.isSafeInteger(resultingPayrollSeconds)) fail('The resulting approved payroll is not a safe integer.');
-  if (resultingPayrollSeconds !== expectedPayrollSeconds) {
-    fail(
-      `Expected approved payroll ${expectedPayrollSeconds} seconds, `
-      + `but this batch would produce ${resultingPayrollSeconds} seconds.`
-    );
-  }
-  updatedMonth.approvedPayrollSeconds = resultingPayrollSeconds;
+  updatedMonth.approvedPayrollSeconds = expectedPayrollSeconds;
 
   const restoredMonth = structuredClone(updatedMonth);
   restoredMonth.approvedPayrollSeconds = originalMonth.approvedPayrollSeconds;
@@ -316,7 +305,7 @@ async function main() {
   const additionCount = normalizedChanges.length - correctionCount;
   console.log(
     `Prepared ${period}: ${additionCount} addition(s), ${correctionCount} correction(s); `
-    + `total ${resultingTotal} cents; approved payroll ${resultingPayrollSeconds} seconds.`
+    + `total ${resultingTotal} cents; approved payroll ${expectedPayrollSeconds} seconds.`
   );
 }
 

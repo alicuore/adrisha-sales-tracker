@@ -24,7 +24,7 @@ Routine sales publishing does not require Codex or local tests:
 4. Wait for the workflow to pass. It validates the payload, changes only the current open month, runs production validation and all tests, then commits directly to `main` if `main` has not changed during the run.
 5. GitHub Pages publishes the dashboard; reload it and confirm the totals.
 
-The single publisher accepts batches containing `correct_gmv` and `add_session` changes. A correction preserves every session field except `gmvCents`. A new session adds its `durationSeconds` to approved payroll. Both resulting totals must exactly match the payload safeguards. Routine publishing should not use Codex, a local computer or the GitHub file editor.
+The single publisher accepts batches containing `correct_gmv` and `add_session` changes. A correction preserves every session field except `gmvCents`. `expectedApprovedPayrollSeconds` is the authoritative exact payroll total for the month after the complete batch; it is independent from session durations. The resulting GMV total must exactly match the payload safeguard. Routine publishing should not use Codex, a local computer or the GitHub file editor.
 
 Direct commits to `main` also trigger validation, but that check runs after the commit and does not provide the publisher's pre-commit safeguards. Use **Publish sales update** for routine sales changes. Use pull requests for development, schema, business-rule, schedule, attendance or historical changes.
 
