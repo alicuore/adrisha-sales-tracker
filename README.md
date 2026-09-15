@@ -19,15 +19,14 @@ Dashboard V2 is live in production on `main`. The dashboard:
 Routine sales publishing does not require Codex or local tests:
 
 1. Upload the screenshot or confirmed sales data to the monthly ChatGPT sales-tracking chat.
-2. Verify sales, sessions, approved payroll and commission, then approve the exact proposed changes.
-3. Fetch the latest monthly JSON from GitHub. Update only that month, preserving existing session IDs and correcting existing sessions in place rather than duplicating them.
-4. Use a GitHub connection with confirmed write capability to commit the approved JSON to a branch and open a pull request. If that connection cannot write, use GitHub's web editor from a phone or computer to apply the approved JSON and create the pull request.
-5. Wait for **Validate production data / Validate JSON and run tests** to pass, review the diff, and merge into `main`.
-6. GitHub Pages publishes the dashboard; reload it and confirm the totals.
+2. Verify the proposed additions, corrections, expected monthly total and expected approved payroll, then copy the complete JSON payload.
+3. On GitHub, open **Actions → Publish sales update → Run workflow**, keep `main` selected, paste the JSON into the single payload field and run it.
+4. Wait for the workflow to pass. It validates the payload, changes only the current open month, runs production validation and all tests, then commits directly to `main` if `main` has not changed during the run.
+5. GitHub Pages publishes the dashboard; reload it and confirm the totals.
 
-The GitHub Actions workflow adds validation, not a ChatGPT-to-GitHub publishing integration. A connection that only reads GitHub cannot publish updates.
+The single publisher accepts batches containing `correct_gmv` and `add_session` changes. A correction preserves every session field except `gmvCents`. A new session adds its `durationSeconds` to approved payroll. Both resulting totals must exactly match the payload safeguards. Routine publishing should not use Codex, a local computer or the GitHub file editor.
 
-Direct commits to `main` also trigger validation, but the check runs after the commit and does not prevent GitHub Pages from publishing invalid data. Prefer pull requests. To enforce validation before merging, configure a branch protection rule or ruleset for `main` requiring the validation check. This repository change does not configure that rule or change Pages deployment. Because the workflow uses path filters, unrelated pull requests skip it; account for this before making the check required for every pull request.
+Direct commits to `main` also trigger validation, but that check runs after the commit and does not provide the publisher's pre-commit safeguards. Use **Publish sales update** for routine sales changes. Use pull requests for development, schema, business-rule, schedule, attendance or historical changes.
 
 Codex remains useful for dashboard development, new month setup, schema changes and bug fixes.
 
@@ -89,7 +88,7 @@ node tests/validate-data.mjs
 node --test tests/*.test.mjs
 ```
 
-GitHub Actions runs these same commands on pushes and pull requests affecting any `data/**/*.json`, `js/**`, `index.html`, `tests/**`, or the validation workflow itself. This includes future monthly JSON files, the manifest, business rules, and historical fixtures. It can also be run manually from the Actions tab once available on the default branch. It uses Node.js 24 with no dependency installation and read-only repository permissions. README-only changes do not trigger it. Preview the dashboard through a local HTTP server so JSON fetches work normally.
+GitHub Actions runs these same commands on pushes and pull requests affecting any `data/**/*.json`, `js/**`, `index.html`, `tests/**`, or the validation workflow itself. This includes future monthly JSON files, the manifest, business rules, and historical fixtures. It can also be run manually from the Actions tab once available on the default branch. The separate **Publish sales update** workflow runs the same checks before it commits a routine current-month update. Both use Node.js 24 with no dependency installation. README-only changes do not trigger validation. Preview the dashboard through a local HTTP server so JSON fetches work normally.
 
 ## Project Roles
 
@@ -99,7 +98,7 @@ Ali Zainal Abidin is responsible for business rules, data approval, product dire
 
 ### AI Development Partner
 
-ChatGPT / Codex by OpenAI provides architecture and technical guidance, data-update instructions, validation support and development assistance. Codex handles development under human direction; routine approved JSON updates can be published through GitHub without Codex.
+ChatGPT / Codex by OpenAI provides architecture and technical guidance, payload preparation, validation support and development assistance. Codex handles development under human direction; routine approved sales updates are published through the phone-friendly GitHub Action without Codex.
 
 ## Deployment
 
@@ -111,8 +110,6 @@ ChatGPT / Codex by OpenAI provides architecture and technical guidance, data-upd
 
 ## Future Improvements
 
-- Easier phone-friendly publishing.
-- Reduced dependence on a local computer for routine updates.
 - Further workflow automation while preserving human approval.
 
 Built as a personal productivity project. Human approval remains the final gate before production changes.

@@ -1,0 +1,84 @@
+name: Publish sales update
+
+run-name: Publish routine sales update
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Paste the complete GITHUB ACTION PAYLOAD JSON'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-sales-update
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and publish sales update
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SALES_UPDATE_PAYLOAD: ${{ inputs.payload }}
+    steps:
+      - name: Require the main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo '::error::Run this publisher from the main branch only.'
+          exit 1
+
+      - name: Check out current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Apply the requested batch
+        run: node scripts/publish-sales-update.mjs
+
+      - name: Confirm only the current month JSON changed
+        shell: bash
+        run: |
+          expected_file="$(node -e "const m=require('./data/manifest.json'); const d=m.months.find(x=>x.period===m.defaultPeriod); if(!d) process.exit(1); process.stdout.write('data/'+d.path)")"
+          mapfile -d '' changed_files < <(git diff --name-only -z)
+          untracked_files="$(git ls-files --others --exclude-standard)"
+
+          if [[ ${#changed_files[@]} -ne 1 || "${changed_files[0]}" != "$expected_file" || -n "$untracked_files" ]]; then
+            printf '::error::Expected only %s to change; tracked changes: %s; untracked files: %s\n' \
+              "$expected_file" "${changed_files[*]:-(none)}" "${untracked_files:-(none)}"
+            exit 1
+          fi
+
+          git diff --check
+
+      - name: Validate production JSON
+        run: node tests/validate-data.mjs
+
+      - name: Run all 18 tests
+        run: node --test tests/*.test.mjs
+
+      - name: Commit and push the validated update
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+            echo '::error::main changed while this update was running. Run the workflow again with totals based on the latest data.'
+            exit 1
+          fi
+
+          expected_file="$(node -e "const m=require('./data/manifest.json'); const d=m.months.find(x=>x.period===m.defaultPeriod); process.stdout.write('data/'+d.path)")"
+          period="$(node -p "require('./data/manifest.json').defaultPeriod")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$expected_file"
+          git commit -m "Publish sales update for $period"
+          git push origin HEAD:main
