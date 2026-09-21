@@ -3,7 +3,7 @@
   "period": "2026-09",
   "status": "open",
   "ruleSetId": "2026-v1",
-  "approvedPayrollSeconds": 252900,
+  "approvedPayrollSeconds": 270900,
   "source": {
     "type": "runtime-effective-preloaded",
     "branch": "dashboard-v2",
@@ -339,6 +339,17 @@
       "endTime": "17:31",
       "durationSeconds": 14460,
       "gmvCents": 544993,
+      "notes": "Session 1"
+    },
+    {
+      "id": "2026-09-21-s01",
+      "legacyId": "s31",
+      "date": "2026-09-21",
+      "sessionNumber": 1,
+      "startTime": "11:53",
+      "endTime": "16:53",
+      "durationSeconds": 18000,
+      "gmvCents": 220197,
       "notes": "Session 1"
     }
   ],
