@@ -211,7 +211,7 @@ async function main() {
   }
 
   const normalizedChanges = [];
-  const targetedSessionIds = new Set();
+  const targetedOperations = new Set();
 
   for (let index = 0; index < payload.changes.length; index += 1) {
     const rawChange = payload.changes[index];
@@ -219,14 +219,17 @@ async function main() {
     requireObject(label, rawChange);
     const operation = requireString(`${label}.operation`, rawChange.operation);
 
-    if (operation === 'correct_gmv') {
-      requireExactKeys(label, rawChange, ['operation', 'sessionId', 'gmvCents']);
+    if (operation === 'correct_gmv' || operation === 'correct_session_timing') {
+      requireExactKeys(label, rawChange, operation === 'correct_gmv'
+        ? ['operation', 'sessionId', 'gmvCents']
+        : ['operation', 'sessionId', 'endTime', 'durationSeconds']);
       const sessionId = requireString(`${label}.sessionId`, rawChange.sessionId);
       if (!/^\d{4}-\d{2}-\d{2}-s\d{2,}$/.test(sessionId)) {
         fail(`${label}.sessionId must look like 2026-09-14-s01.`);
       }
-      if (targetedSessionIds.has(sessionId)) fail(`Conflicting changes target session ID ${sessionId}.`);
-      targetedSessionIds.add(sessionId);
+      const target = `${operation}:${sessionId}`;
+      if (targetedOperations.has(target)) fail(`Duplicate ${operation} changes target session ID ${sessionId}.`);
+      targetedOperations.add(target);
 
       const matches = globalSessionsById.get(sessionId) || [];
       if (matches.length === 0) fail(`Session ID ${sessionId} does not exist.`);
@@ -236,19 +239,28 @@ async function main() {
         fail(`Session ${sessionId} is not in the current open period ${period}.`);
       }
 
-      const gmvCents = requireInteger(`${label}.gmvCents`, rawChange.gmvCents);
-      if (match.session.gmvCents === gmvCents) {
-        fail(`Session ${sessionId} already has GMV ${gmvCents} cents; nothing to publish.`);
+      if (operation === 'correct_gmv') {
+        const gmvCents = requireInteger(`${label}.gmvCents`, rawChange.gmvCents);
+        if (match.session.gmvCents === gmvCents) {
+          fail(`Session ${sessionId} already has GMV ${gmvCents} cents; nothing to publish.`);
+        }
+        normalizedChanges.push({ operation, sessionId, gmvCents, match });
+      } else {
+        const endTime = requireTime(`${label}.endTime`, rawChange.endTime);
+        const durationSeconds = requireInteger(`${label}.durationSeconds`, rawChange.durationSeconds);
+        if (match.session.endTime === endTime && match.session.durationSeconds === durationSeconds) {
+          fail(`Session ${sessionId} already has the requested timing; nothing to publish.`);
+        }
+        normalizedChanges.push({ operation, sessionId, endTime, durationSeconds, match });
       }
-      normalizedChanges.push({ operation, sessionId, gmvCents, match });
       continue;
     }
 
     if (operation === 'add_session') {
       requireExactKeys(label, rawChange, ['operation', 'session']);
       const session = validateSession(rawChange.session, index, period);
-      if (targetedSessionIds.has(session.id)) fail(`Conflicting changes target session ID ${session.id}.`);
-      targetedSessionIds.add(session.id);
+      if (targetedOperations.has(`add_session:${session.id}`)) fail(`Duplicate additions target session ID ${session.id}.`);
+      targetedOperations.add(`add_session:${session.id}`);
       if (globalSessionsById.has(session.id)) fail(`Session ID ${session.id} already exists.`);
       if (usedLegacyIds.has(session.legacyId)) {
         fail(`legacyId ${session.legacyId} already exists in the current period or this batch.`);
@@ -264,13 +276,16 @@ async function main() {
       continue;
     }
 
-    fail(`${label}.operation must be correct_gmv or add_session.`);
+    fail(`${label}.operation must be correct_gmv, correct_session_timing, or add_session.`);
   }
 
   const updatedMonth = structuredClone(originalMonth);
   for (const change of normalizedChanges) {
     if (change.operation === 'correct_gmv') {
       updatedMonth.sessions[change.match.index].gmvCents = change.gmvCents;
+    } else if (change.operation === 'correct_session_timing') {
+      updatedMonth.sessions[change.match.index].endTime = change.endTime;
+      updatedMonth.sessions[change.match.index].durationSeconds = change.durationSeconds;
     } else {
       updatedMonth.sessions.push(change.session);
     }
@@ -293,6 +308,9 @@ async function main() {
   for (const change of normalizedChanges) {
     if (change.operation === 'correct_gmv') {
       restoredMonth.sessions[change.match.index].gmvCents = change.match.session.gmvCents;
+    } else if (change.operation === 'correct_session_timing') {
+      restoredMonth.sessions[change.match.index].endTime = change.match.session.endTime;
+      restoredMonth.sessions[change.match.index].durationSeconds = change.match.session.durationSeconds;
     }
   }
   assert.deepStrictEqual(restoredMonth, originalMonth, 'Internal safeguard: unspecified monthly data changed.');
@@ -301,7 +319,7 @@ async function main() {
   const newline = originalText.includes('\r\n') ? '\r\n' : '\n';
   await writeFile(currentPath, `${JSON.stringify(updatedMonth, null, 2)}${newline}`, 'utf8');
 
-  const correctionCount = normalizedChanges.filter(change => change.operation === 'correct_gmv').length;
+  const correctionCount = normalizedChanges.filter(change => change.operation !== 'add_session').length;
   const additionCount = normalizedChanges.length - correctionCount;
   console.log(
     `Prepared ${period}: ${additionCount} addition(s), ${correctionCount} correction(s); `

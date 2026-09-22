@@ -63,7 +63,7 @@ jobs:
       - name: Validate production JSON
         run: node tests/validate-data.mjs
 
-      - name: Run all 18 tests
+      - name: Run all tests
         run: node --test tests/*.test.mjs
 
       - name: Commit and push the validated update
