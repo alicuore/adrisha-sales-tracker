@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adrisha's Sales Tracker — September 2026</title>
+<title>Adrisha's Sales Tracker</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBhMGEwZiIvPjxyZWN0IHg9IjQiIHk9IjIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI4IiByeD0iMSIgZmlsbD0iI2U4Yjg2ZCIvPjxyZWN0IHg9IjEzIiB5PSIxMiIgd2lkdGg9IjUiIGhlaWdodD0iMTYiIHJ4PSIxIiBmaWxsPSIjZTg3ZDhiIi8+PHJlY3QgeD0iMjIiIHk9IjYiIHdpZHRoPSI1IiBoZWlnaHQ9IjIyIiByeD0iMSIgZmlsbD0iIzZkZThjNCIvPjwvc3ZnPg==">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -505,6 +505,7 @@ function renderSchedulePage(){
 
 function render(){
   const{year,month}=getYM();loadState(year,month);
+  document.title=`Adrisha's Sales Tracker — ${MONTHS[month-1]} ${year}`;
   const entries=(state.entries||[]).filter(e=>!e.attendance);
   const hours=state.hours||0;
   const totalSales=sumSales(entries);

@@ -72,6 +72,21 @@ async function page(fetcher=fetchFile){
  const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
  await vm.runInContext(script,context);return{context,element,html};
 }
+test('browser title uses a generic fallback and follows the initial and selected period',async()=>{
+ const {context,element,html}=await page();
+ assert.equal(html.match(/<title>(.*?)<\/title>/)[1],"Adrisha's Sales Tracker");
+ const titleFor=period=>"Adrisha's Sales Tracker — "+new Date(period+'-01T00:00:00Z').toLocaleString('en',{month:'long',year:'numeric',timeZone:'UTC'});
+ assert.equal(context.document.title,titleFor(data.manifest.defaultPeriod));
+ for(const {period} of data.manifest.months){
+  const [year,month]=period.split('-');
+  element('yearSelect').value=year;element('monthSelect').value=Number(month);
+  vm.runInContext('render()',context);
+  assert.equal(context.document.title,titleFor(period));
+ }
+ element('yearSelect').value=2027;
+ vm.runInContext('render()',context);
+ assert.match(context.document.title,/ 2027$/);
+});
 test('actual dashboard renders all manifest months and comparison/overview from JSON despite poisoned legacy storage',async()=>{
  const {context,element,html}=await page();assert.doesNotMatch(html,/PRELOADED|localStorage|function (addEntry|saveEdit|deleteEntry|addHours|resetHours)/);
  for(const m of data.months){const [y,n]=m.period.split('-').map(Number);element('yearSelect').value=y;element('monthSelect').value=n;vm.runInContext('render()',context);const t=expectedTotals(m);const money=c=>'RM'+(c/100).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});assert.equal(element('totalSalesCard').textContent,money(t.gmvCents));assert.equal(element('commissionCard').textContent,money(t.commissionCents));assert.equal(element('basicCard').textContent,money(t.basicSalaryCents));assert.equal(element('totalSessionsCard').textContent,t.sessionCount+' sessions');assert.equal(parseFloat(element('hoursBarFill').style.width),t.hoursProgress);
