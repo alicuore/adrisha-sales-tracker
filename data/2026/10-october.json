@@ -3,12 +3,35 @@
   "period": "2026-10",
   "status": "open",
   "ruleSetId": "2026-v1",
-  "approvedPayrollSeconds": 0,
+  "approvedPayrollSeconds": 14400,
   "source": {
     "type": "product-owner-confirmed",
     "note": "October 2026 schedule confirmed by the Product Owner."
   },
-  "sessions": [],
+  "sessions": [
+    {
+      "id": "2026-10-01-s01",
+      "legacyId": "s01",
+      "date": "2026-10-01",
+      "sessionNumber": 1,
+      "startTime": "14:30",
+      "endTime": "17:10",
+      "durationSeconds": 9600,
+      "gmvCents": 310007,
+      "notes": "Session 1 — TikTok Studio 1 (Main)"
+    },
+    {
+      "id": "2026-10-01-s02",
+      "legacyId": "s02",
+      "date": "2026-10-01",
+      "sessionNumber": 2,
+      "startTime": "17:15",
+      "endTime": "18:35",
+      "durationSeconds": 4800,
+      "gmvCents": 76654,
+      "notes": "Session 2 — TikTok Studio 1 (Main)"
+    }
+  ],
   "attendance": [],
   "schedule": [
     {
