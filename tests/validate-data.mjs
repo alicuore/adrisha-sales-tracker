@@ -233,6 +233,8 @@ for (const descriptor of manifest.months) {
     }
   }
 
+  check(month.schedule.every(day => JSON.stringify(day.slots) === JSON.stringify(parsePlannedSlots(day.label))),
+    descriptor.period + ': schedule labels and slots must agree');
   const totals = monthTotals(month, rules);
   dailyTotal += Object.keys(totals.dailyGmvCents).length;
   const frozen = baseline.months[descriptor.period];
@@ -247,7 +249,17 @@ for (const descriptor of manifest.months) {
   }
 }
 
-check(!baseline.frozenPeriods.includes('2026-09'), 'Open September must not have frozen expected totals');
+const openMonths = manifest.months.filter(item => item.status === 'open');
+check(openMonths.length === 1 && openMonths[0].period === manifest.defaultPeriod,
+  'The default period must be the single open month');
+check(!baseline.frozenPeriods.includes(manifest.defaultPeriod) && !baseline.months[manifest.defaultPeriod],
+  'Open month must not have frozen expected totals');
+for (const descriptor of manifest.months) {
+  check(['open', 'completed'].includes(descriptor.status), descriptor.period + ': invalid status');
+  if (descriptor.status === 'completed') check(baseline.frozenPeriods.includes(descriptor.period)
+    && !!baseline.months[descriptor.period], descriptor.period + ': completed month must have a frozen baseline');
+}
+check(new Set(baseline.frozenPeriods).size === baseline.frozenPeriods.length, 'Duplicate frozen periods');
 check(baseline.frozenPeriods.every(period => manifest.months.some(item =>
   item.period === period && item.status === 'completed')),
   'Every frozen baseline period must be a completed manifest month');
@@ -265,12 +277,16 @@ const reconciliation = [];
 let reconciledDailyDays = 0;
 let reconciledScheduleDays = 0;
 
-for (let monthNumber = 1; monthNumber <= 9; monthNumber += 1) {
-  const period = `2026-${String(monthNumber).padStart(2, '0')}`;
-  if (!baseline.frozenPeriods.includes(period)) {
+const octoberSchedule = await readJson('tests/fixtures/october-2026-schedule.json');
+for (const { period } of manifest.months) {
+  const monthNumber = Number(period.slice(5));
+  // Only January-August belong to the original Phase 1 migration snapshot.
+  const phase1 = period >= '2026-01' && period <= '2026-08';
+  if (!phase1) {
     const month = loadedMonths.get(period);
     const descriptor = manifest.months.find(item => item.period === period);
-    check(descriptor?.status === 'open', period + ': non-frozen month must be open');
+    check(descriptor?.status === 'open' || baseline.productionSources?.[period]?.type === 'final-production',
+      period + ': completed month needs final production provenance');
     try { V2.validateRules(rules); V2.validateMonth(month, descriptor, rules); }
     catch (error) { check(false, period + ': ' + error.message); }
     const expected = monthTotals(month, rules);
@@ -284,14 +300,23 @@ for (let monthNumber = 1; monthNumber <= 9; monthNumber += 1) {
       entry.id === month.sessions[i].id && entry.gmvCents === month.sessions[i].gmvCents
       && entry.dur === month.sessions[i].durationSeconds / 3600), period + ': live adapter mismatch');
     // Schedule protection is independent of live sales and attendance updates.
-    const planned = scheduleSources[monthNumber] || {};
+    const planned = period === '2026-10'
+      ? Object.fromEntries(octoberSchedule.schedule.map(day => [day.date, day]))
+      : (period === '2026-09' ? scheduleSources[9] : Object.fromEntries(month.schedule.map(day => [day.date, day])));
     check(Object.keys(planned).length === month.schedule.length && Object.entries(planned).every(([date, day]) => {
       const migrated = month.schedule.find(item => item.date === date);
       return migrated && migrated.label === day.label
         && JSON.stringify(migrated.slots) === JSON.stringify(parsePlannedSlots(day.label));
     }), period + ': schedule reconciliation failed');
+    if (period === '2026-10') {
+      const minutes = time => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+      const plannedMinutes = month.schedule.flatMap(day => day.slots).reduce((sum, slot) =>
+        sum + minutes(slot.endTime) + slot.endDayOffset * 1440 - minutes(slot.startTime), 0);
+      check(month.schedule.length === 31 && plannedMinutes === 127 * 60,
+        period + ': expected 31 schedule dates and 127 planned hours');
+    }
     reconciledScheduleDays += Object.keys(planned).length;
-    console.log('Live JSON reconciliation: ' + period + ', ' + expected.sessionCount + ' sessions, ' + Object.keys(expected.dailyGmvCents).length + ' daily totals, ' + money(expected.gmvCents) + ', payroll ' + hours(expected.approvedPayrollSeconds));
+    console.log((descriptor.status === 'open' ? 'Live JSON reconciliation: ' : 'Final production reconciliation: ') + period + ', ' + expected.sessionCount + ' sessions, ' + Object.keys(expected.dailyGmvCents).length + ' daily totals, ' + money(expected.gmvCents) + ', payroll ' + hours(expected.approvedPayrollSeconds));
     continue;
   }
   const v1 = preloaded[`eskayvie_2026_${monthNumber}`];
@@ -382,7 +407,7 @@ if (errors.length > 0) {
   console.log(`Validation PASS: ${sessionTotal} globally unique sessions across ${loadedMonths.size} months.`);
   console.log(`Frozen baseline PASS: ${baseline.frozenPeriods.length} completed periods and ${baseline.frozenPeriods.reduce((sum, period) => sum + Object.keys(groupDailyGmv(loadedMonths.get(period).sessions)).length, 0)} historical daily totals.`);
   console.log(`Frozen daily V1/V2 reconciliation PASS: ${reconciledDailyDays} daily totals.`);
-  console.log(`Schedule V1/V2 reconciliation PASS: ${reconciledScheduleDays} planned days, including split slots.`);
+  console.log(`Schedule reconciliation PASS (legacy and Product Owner confirmed): ${reconciledScheduleDays} planned days, including split slots.`);
   console.log('');
   console.log('| Month | Sessions V1 | Sessions V2 | GMV V1 | GMV V2 | Approved Hours V1 | Approved Hours V2 | Commission V1 | Commission V2 | Status |');
   console.log('|---|---:|---:|---:|---:|---:|---:|---:|---:|---|');

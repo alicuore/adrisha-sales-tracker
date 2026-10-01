@@ -12,13 +12,13 @@ const fetchFile=async p=>({ok:true,json:()=>json(p)});
 const data=await V2.load(fetchFile);
 const baseline=await json('tests/historical-baseline.json');
 
-test('HTTP loads manifest, rules and all nine months; requests bypass stale caches',async()=>{
+test('HTTP loads manifest, rules and all manifest months; requests bypass stale caches',async()=>{
  const requests=[];
  const server=createServer(async(req,res)=>{try{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(await json(req.url.slice(1))));}catch{res.writeHead(404);res.end();}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- try{const loaded=await V2.load((p,o)=>{requests.push([p,o.cache]);return fetch(`http://127.0.0.1:${server.address().port}/${p}`,o);});assert.equal(loaded.months.length,9);assert.equal(requests.length,11);assert(requests.every(r=>r[1]==='no-store'));}finally{await new Promise(resolve=>server.close(resolve));}
+ try{const loaded=await V2.load((p,o)=>{requests.push([p,o.cache]);return fetch(`http://127.0.0.1:${server.address().port}/${p}`,o);});assert.equal(loaded.months.length,data.manifest.months.length);assert.equal(requests.length,data.manifest.months.length+2);assert(requests.every(r=>r[1]==='no-store'));}finally{await new Promise(resolve=>server.close(resolve));}
 });
-test('January-August match independent frozen totals including daily GMV and salary',()=>{
+test('Completed months match independent frozen totals including daily GMV and salary',()=>{
  for(const period of baseline.frozenPeriods){const m=data.months.find(item=>item.period===period);assert(m,period);const actual=V2.totals(m,data.rules),expected=baseline.months[m.period];for(const key of ['sessionCount','gmvCents','approvedPayrollSeconds','commissionCents','basicSalaryCents','dailyGmvCents'])assert.deepEqual(actual[key],expected[key],m.period+' '+key);}
 });
 function expectedTotals(m) {
@@ -72,7 +72,7 @@ async function page(fetcher=fetchFile){
  const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
  await vm.runInContext(script,context);return{context,element,html};
 }
-test('actual dashboard renders January-September and comparison/overview from JSON despite poisoned legacy storage',async()=>{
+test('actual dashboard renders all manifest months and comparison/overview from JSON despite poisoned legacy storage',async()=>{
  const {context,element,html}=await page();assert.doesNotMatch(html,/PRELOADED|localStorage|function (addEntry|saveEdit|deleteEntry|addHours|resetHours)/);
  for(const m of data.months){const [y,n]=m.period.split('-').map(Number);element('yearSelect').value=y;element('monthSelect').value=n;vm.runInContext('render()',context);const t=expectedTotals(m);const money=c=>'RM'+(c/100).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});assert.equal(element('totalSalesCard').textContent,money(t.gmvCents));assert.equal(element('commissionCard').textContent,money(t.commissionCents));assert.equal(element('basicCard').textContent,money(t.basicSalaryCents));assert.equal(element('totalSessionsCard').textContent,t.sessionCount+' sessions');assert.equal(parseFloat(element('hoursBarFill').style.width),t.hoursProgress);
  for(const [date,cents] of Object.entries(t.dailyGmvCents))assert(element('logBody').innerHTML.includes(money(cents)),date);
@@ -87,7 +87,9 @@ test('page exposes a clear error and never renders stale totals on load failure'
 async function validateVariant(period, mutate) {
  const root=fileURLToPath(new URL('../',import.meta.url));
  const descriptor=data.manifest.months.find(m=>m.period===period);
- const value=structuredClone(data.months.find(m=>m.period===period));mutate(value);
+ const value=structuredClone(data.months.find(m=>m.period===period));
+ if (period===data.manifest.defaultPeriod && !value.sessions.length) value.sessions.push({id:period+'-01-s01',legacyId:'synthetic',date:period+'-01',sessionNumber:1,startTime:'15:00',endTime:'16:00',durationSeconds:3600,gmvCents:100,notes:'Synthetic test session'});
+ mutate(value);
  let source=await readFile(new URL('./validate-data.mjs',import.meta.url),'utf8');
  source=source.replace("import { readFile }", "import { readFile as originalReadFile }")
   .replace("import '../js/data-layer.js';",'import '+JSON.stringify(new URL('../js/data-layer.js',import.meta.url).href)+';')
@@ -100,11 +102,11 @@ test('normal validator accepts legitimate live corrections and added sessions wi
   const original=m.sessions[0];const n=Math.max(...m.sessions.filter(s=>s.date===original.date).map(s=>s.sessionNumber))+1;
   m.sessions.push({...original,id:original.date+'-s'+String(n).padStart(2,'0'),legacyId:'synthetic-new',sessionNumber:n,gmvCents:0,durationSeconds:600});
   m.approvedPayrollSeconds+=600;
- }]){const result=await validateVariant('2026-09',mutate);assert.equal(result.status,0,result.stdout+result.stderr);}
+ }]){const result=await validateVariant(data.manifest.defaultPeriod,mutate);assert.equal(result.status,0,result.stdout+result.stderr);}
 });
 test('normal validator rejects malformed live data, duplicate IDs, attendance and schedule violations',async()=>{
  for(const mutate of [m=>m.sessions.push({...m.sessions[0]}),m=>{m.sessions[0].gmvCents=0.5;},m=>{m.sessions[0].durationSeconds=0.1;},m=>{m.approvedPayrollSeconds=-1;},m=>{m.sessions[0].date='2026-09-99';},m=>{m.attendance=[{date:m.sessions[0].date,status:'leave',notes:'invalid conflict'}];},m=>{m.schedule[0].slots[0].startTime='25:00';},m=>{m.schedule[0].label='Changed planned schedule';}]){
-  const result=await validateVariant('2026-09',mutate);assert.notEqual(result.status,0);
+  const result=await validateVariant(data.manifest.defaultPeriod,mutate);assert.notEqual(result.status,0);
  }
 });
 test('every frozen historical period still rejects a sales change',async()=>{
