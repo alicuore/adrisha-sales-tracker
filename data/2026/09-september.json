@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "period": "2026-09",
-  "status": "open",
+  "status": "completed",
   "ruleSetId": "2026-v1",
   "approvedPayrollSeconds": 390301,
   "source": {

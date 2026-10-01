@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "period": "2026-10",
+  "status": "open",
+  "ruleSetId": "2026-v1",
+  "approvedPayrollSeconds": 0,
+  "source": {
+    "type": "product-owner-confirmed",
+    "note": "October 2026 schedule confirmed by the Product Owner."
+  },
+  "sessions": [],
+  "attendance": [],
+  "schedule": [
+    {
+      "date": "2026-10-01",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-02",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-03",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-04",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-05",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-06",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-07",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-10",
+      "label": "8PM – 1AM",
+      "slots": [
+        {
+          "startTime": "20:00",
+          "endTime": "01:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "label": "8PM – 12AM",
+      "slots": [
+        {
+          "startTime": "20:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-12",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-13",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-14",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-15",
+      "label": "11AM – 2PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "14:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-16",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-17",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-18",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-19",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-20",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-21",
+      "label": "7PM – 12AM",
+      "slots": [
+        {
+          "startTime": "19:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-22",
+      "label": "8PM – 12AM",
+      "slots": [
+        {
+          "startTime": "20:00",
+          "endTime": "00:00",
+          "endDayOffset": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-10-23",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-24",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "label": "3PM – 7PM",
+      "slots": [
+        {
+          "startTime": "15:00",
+          "endTime": "19:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-26",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-27",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-28",
+      "label": "11AM – 3PM",
+      "slots": [
+        {
+          "startTime": "11:00",
+          "endTime": "15:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-29",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-30",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    },
+    {
+      "date": "2026-10-31",
+      "label": "7AM – 11AM",
+      "slots": [
+        {
+          "startTime": "07:00",
+          "endTime": "11:00",
+          "endDayOffset": 0
+        }
+      ]
+    }
+  ]
+}

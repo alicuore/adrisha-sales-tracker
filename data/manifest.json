@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "defaultPeriod": "2026-09",
+  "defaultPeriod": "2026-10",
   "source": {
     "type": "runtime-effective-preloaded",
     "branch": "dashboard-v2",
@@ -16,6 +16,7 @@
     { "period": "2026-06", "status": "completed", "path": "2026/06-june.json" },
     { "period": "2026-07", "status": "completed", "path": "2026/07-july.json" },
     { "period": "2026-08", "status": "completed", "path": "2026/08-august.json" },
-    { "period": "2026-09", "status": "open", "path": "2026/09-september.json" }
+    { "period": "2026-09", "status": "completed", "path": "2026/09-september.json" },
+    { "period": "2026-10", "status": "open", "path": "2026/10-october.json" }
   ]
 }

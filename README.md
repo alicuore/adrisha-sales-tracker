@@ -6,7 +6,7 @@ A personal livestream sales, GMV, payroll and commission tracking dashboard buil
 
 ## Current Status
 
-Dashboard V2 is live in production on `main`. The dashboard:
+Dashboard V2 is live in production on `main`. October 2026 is the single open/default month; January–September are completed. The dashboard:
 
 - Loads authoritative business data from JSON.
 - Is read-only in the browser and does not use localStorage as a business-data source.
@@ -24,7 +24,7 @@ Routine sales publishing does not require Codex or local tests:
 4. Wait for the workflow to pass. It validates the payload, changes only the current open month, runs production validation and all tests, then commits directly to `main` if `main` has not changed during the run.
 5. GitHub Pages publishes the dashboard; reload it and confirm the totals.
 
-The single publisher accepts batches containing `correct_gmv` and `add_session` changes. A correction preserves every session field except `gmvCents`. `expectedApprovedPayrollSeconds` is the authoritative exact payroll total for the month after the complete batch; it is independent from session durations. The resulting GMV total must exactly match the payload safeguard. Routine publishing should not use Codex, a local computer or the GitHub file editor.
+The single publisher accepts batches containing `correct_gmv`, `correct_session_timing` and `add_session` changes. A GMV correction changes only `gmvCents`; a timing correction changes only `endTime` and `durationSeconds`. `expectedApprovedPayrollSeconds` is the authoritative exact payroll total for the month after the complete batch; it is independent from session durations. The resulting GMV total must exactly match the payload safeguard. Routine publishing should not use Codex, a local computer or the GitHub file editor.
 
 Direct commits to `main` also trigger validation, but that check runs after the commit and does not provide the publisher's pre-commit safeguards. Use **Publish sales update** for routine sales changes. Use pull requests for development, schema, business-rule, schedule, attendance or historical changes.
 
@@ -42,7 +42,9 @@ Browser localStorage cannot override published business data. Actual livestream 
 
 ## Historical Protection and Live-Month Validation
 
-January–August 2026 are frozen historical periods protected by historical baseline validation. Frozen periods are identified by `baseline.frozenPeriods` and must not silently change.
+January–August 2026 are frozen historical periods protected by historical baseline validation. September is frozen against its final production commit `aea90a7f265065e4f6ec2ecfe1365bb3189565e3` (45 sessions, RM150,275.26, 390,301 approved payroll seconds), not the older Phase 1 PRELOADED snapshot. Baselines are test-only reconciliation fixtures; runtime totals continue to come from session records and approved payroll. Frozen periods are identified by `baseline.frozenPeriods` and must not silently change.
+
+October starts with empty sessions and attendance, zero GMV/payroll/commission, and 31 Product Owner-confirmed schedule dates totaling 127 hours. Future session IDs use `2026-10-DD-sNN`. After this structural rollover is approved and merged, continue routine updates through **Publish sales update** using period `2026-10`.
 
 The current live month can receive legitimate new sessions and GMV corrections without updating frozen fixtures. Live-month updates still undergo schema, duplicate-ID, schedule, attendance, totals and business-rule validation.
 
@@ -67,14 +69,19 @@ adrisha-sales-tracker/
 │       ├── 06-june.json
 │       ├── 07-july.json
 │       ├── 08-august.json
-│       └── 09-september.json
+│       ├── 09-september.json
+│       └── 10-october.json
+├── scripts/
+│   └── publish-sales-update.mjs
 └── tests/
     ├── validate-data.mjs
     ├── calculations.test.mjs
     ├── data-layer.test.mjs
+    ├── publish-sales-update.test.mjs
     ├── historical-baseline.json
     └── fixtures/
-        └── legacy-phase1.js
+        ├── legacy-phase1.js
+        └── october-2026-schedule.json
 ```
 
 The legacy fixture is a test-only migration reference; the dashboard does not load it.
