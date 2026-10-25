@@ -3,7 +3,7 @@
   "period": "2026-10",
   "status": "open",
   "ruleSetId": "2026-v1",
-  "approvedPayrollSeconds": 317820,
+  "approvedPayrollSeconds": 332220,
   "source": {
     "type": "product-owner-confirmed",
     "note": "October 2026 schedule confirmed by the Product Owner."
@@ -360,6 +360,17 @@
       "durationSeconds": 4200,
       "gmvCents": 57742,
       "notes": "Session 3 — TikTok Studio 1 (Main)"
+    },
+    {
+      "id": "2026-10-25-s01",
+      "legacyId": "s33",
+      "date": "2026-10-25",
+      "sessionNumber": 1,
+      "startTime": "12:20",
+      "endTime": "16:20",
+      "durationSeconds": 14400,
+      "gmvCents": 410733,
+      "notes": "Session 1 — TikTok Studio 1 (Main)"
     }
   ],
   "attendance": [],
