@@ -1,0 +1,66 @@
+name: Telegram livestream reminder pilot
+
+run-name: Telegram reminder pilot (${{ github.event_name }})
+
+on:
+  schedule:
+    # Malaysia is UTC+8. Application guards restrict these annual crons to 2026 only.
+    - cron: '0 23 27 10 *'     # 28 Oct 07:00 MYT (4-hour reminder)
+    - cron: '0 2 28 10 *'      # 28 Oct 10:00 MYT (1-hour reminder)
+    - cron: '0 19 28-30 10 *'  # 29–31 Oct 03:00 MYT (4-hour reminders)
+    - cron: '0 22 28-30 10 *'  # 29–31 Oct 06:00 MYT (1-hour reminders)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Choose dry-run to preview safely or send-test to verify Telegram connectivity'
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - send-test
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-reminder-pilot-${{ github.event_name }}-${{ github.event.schedule || inputs.mode }}
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    name: Resolve and send reminder
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run guarded scheduled reminder
+        if: github.event_name == 'schedule'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: >-
+          node scripts/telegram-reminder.mjs
+          --mode scheduled
+          --schedule "${{ github.event.schedule }}"
+          --run-attempt "${{ github.run_attempt }}"
+
+      - name: Preview reminder without contacting Telegram
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
+        run: node scripts/telegram-reminder.mjs --mode dry-run
+
+      - name: Send fixed Telegram connectivity test
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'send-test'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/telegram-reminder.mjs --mode send-test
