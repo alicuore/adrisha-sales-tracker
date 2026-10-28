@@ -14,14 +14,14 @@ const octoberDataPath = resolve(repoRoot, 'data/2026/10-october.json');
 const maximumScheduleDelayMs = 59 * 60 * 1000;
 
 export const PILOT_EVENTS = Object.freeze([
-  { utc: '2026-10-27T23:00:00.000Z', date: '2026-10-28', reminderHours: 4, schedule: '0 23 27 10 *' },
-  { utc: '2026-10-28T02:00:00.000Z', date: '2026-10-28', reminderHours: 1, schedule: '0 2 28 10 *' },
-  { utc: '2026-10-28T19:00:00.000Z', date: '2026-10-29', reminderHours: 4, schedule: '0 19 28-30 10 *' },
-  { utc: '2026-10-28T22:00:00.000Z', date: '2026-10-29', reminderHours: 1, schedule: '0 22 28-30 10 *' },
-  { utc: '2026-10-29T19:00:00.000Z', date: '2026-10-30', reminderHours: 4, schedule: '0 19 28-30 10 *' },
-  { utc: '2026-10-29T22:00:00.000Z', date: '2026-10-30', reminderHours: 1, schedule: '0 22 28-30 10 *' },
-  { utc: '2026-10-30T19:00:00.000Z', date: '2026-10-31', reminderHours: 4, schedule: '0 19 28-30 10 *' },
-  { utc: '2026-10-30T22:00:00.000Z', date: '2026-10-31', reminderHours: 1, schedule: '0 22 28-30 10 *' }
+  { utc: '2026-10-27T23:00:00.000Z', date: '2026-10-28', reminderHours: 4, schedule: '5 23 27 10 *' },
+  { utc: '2026-10-28T02:00:00.000Z', date: '2026-10-28', reminderHours: 1, schedule: '5 2 28 10 *' },
+  { utc: '2026-10-28T19:00:00.000Z', date: '2026-10-29', reminderHours: 4, schedule: '5 19 28-30 10 *' },
+  { utc: '2026-10-28T22:00:00.000Z', date: '2026-10-29', reminderHours: 1, schedule: '5 22 28-30 10 *' },
+  { utc: '2026-10-29T19:00:00.000Z', date: '2026-10-30', reminderHours: 4, schedule: '5 19 28-30 10 *' },
+  { utc: '2026-10-29T22:00:00.000Z', date: '2026-10-30', reminderHours: 1, schedule: '5 22 28-30 10 *' },
+  { utc: '2026-10-30T19:00:00.000Z', date: '2026-10-31', reminderHours: 4, schedule: '5 19 28-30 10 *' },
+  { utc: '2026-10-30T22:00:00.000Z', date: '2026-10-31', reminderHours: 1, schedule: '5 22 28-30 10 *' }
 ]);
 
 export function resolveMalaysiaDateTime(now) {
