@@ -31,11 +31,12 @@ test('Malaysia date resolution crosses UTC midnight correctly', () => {
 test('all eight UTC pilot events resolve and send their guarded Malaysia reminder', async () => {
   assert.equal(PILOT_EVENTS.length, 8);
   for (const expected of PILOT_EVENTS) {
-    assert.deepEqual(resolveScheduledEvent(new Date(expected.utc), expected.schedule), expected);
+    const fiveMinutesLate = new Date(Date.parse(expected.utc) + 5 * 60 * 1000);
+    assert.deepEqual(resolveScheduledEvent(fiveMinutesLate, expected.schedule), expected);
     let body;
     const result = await runReminder({
       mode: 'scheduled',
-      now: new Date(expected.utc),
+      now: fiveMinutesLate,
       schedule: expected.schedule,
       env: { TELEGRAM_BOT_TOKEN: 'test-token', TELEGRAM_CHAT_ID: 'test-chat' },
       fetchImpl: async (_url, options) => {
@@ -48,6 +49,30 @@ test('all eight UTC pilot events resolve and send their guarded Malaysia reminde
     assert.equal(result.event, expected);
     assert.equal(body.text, result.message);
   }
+});
+
+test('old minute-00 schedules neither resolve nor send late duplicates', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return { ok: true, status: 200, json: async () => ({ ok: true }) };
+  };
+
+  for (const event of PILOT_EVENTS) {
+    const oldSchedule = event.schedule.replace(/^5 /, '0 ');
+    const fiveMinutesLate = new Date(Date.parse(event.utc) + 5 * 60 * 1000);
+    assert.equal(resolveScheduledEvent(fiveMinutesLate, oldSchedule), null);
+    const result = await runReminder({
+      mode: 'scheduled',
+      now: fiveMinutesLate,
+      schedule: oldSchedule,
+      fetchImpl,
+      log() {}
+    });
+    assert.equal(result.sent, false);
+  }
+
+  assert.equal(calls, 0);
 });
 
 test('pilot shifts are extracted from the authoritative October JSON', async () => {
@@ -87,11 +112,15 @@ test('scheduled execution is a no-op outside the pilot and on reruns', async () 
     calls += 1;
     return { ok: true, status: 200, json: async () => ({ ok: true }) };
   };
-  const options = { mode: 'scheduled', schedule: '0 23 27 10 *', fetchImpl, log() {} };
+  const options = { mode: 'scheduled', schedule: '5 23 27 10 *', fetchImpl, log() {} };
 
   const before = await runReminder({ ...options, now: new Date('2026-10-26T23:00:00Z') });
   const after = await runReminder({ ...options, now: new Date('2027-10-27T23:00:00Z') });
-  const rerun = await runReminder({ ...options, now: new Date(PILOT_EVENTS[0].utc), runAttempt: 2 });
+  const rerun = await runReminder({
+    ...options,
+    now: new Date(Date.parse(PILOT_EVENTS[0].utc) + 5 * 60 * 1000),
+    runAttempt: 2
+  });
 
   assert.equal(before.sent, false);
   assert.equal(after.sent, false);
@@ -155,11 +184,19 @@ test('candidate tracked files contain secret references but no Telegram token va
   assert.match(workflow, /TELEGRAM_CHAT_ID: \$\{\{ secrets\.TELEGRAM_CHAT_ID \}\}/);
   assert.match(workflow, /permissions:\s+contents: read/);
   for (const cron of [
+    '5 23 27 10 *',
+    '5 2 28 10 *',
+    '5 19 28-30 10 *',
+    '5 22 28-30 10 *'
+  ]) {
+    assert.ok(workflow.includes(`cron: '${cron}'`), `missing cron ${cron}`);
+  }
+  for (const oldCron of [
     '0 23 27 10 *',
     '0 2 28 10 *',
     '0 19 28-30 10 *',
     '0 22 28-30 10 *'
   ]) {
-    assert.ok(workflow.includes(`cron: '${cron}'`), `missing cron ${cron}`);
+    assert.ok(!workflow.includes(`cron: '${oldCron}'`), `obsolete cron ${oldCron} remains`);
   }
 });
