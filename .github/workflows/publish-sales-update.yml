@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 5
     env:
       SALES_UPDATE_PAYLOAD: ${{ inputs.payload }}
+      REPORT_WEBHOOK_KEY: ${{ secrets.REPORT_WEBHOOK_KEY }}
+      REPORT_WEBHOOK_URL: https://adrisha-live-reminder.alicuore.workers.dev/report
     steps:
       - name: Require the main branch
         if: github.ref != 'refs/heads/main'
@@ -82,3 +84,24 @@ jobs:
           git add -- "$expected_file"
           git commit -m "Publish sales update for $period"
           git push origin HEAD:main
+
+      - name: Send Telegram sales report
+        shell: bash
+        run: |
+          if [[ -z "$REPORT_WEBHOOK_KEY" ]]; then
+            echo '::error::Repository secret REPORT_WEBHOOK_KEY is not configured.'
+            exit 1
+          fi
+
+          commit_sha="$(git rev-parse HEAD)"
+          period="$(node -p "JSON.parse(process.env.SALES_UPDATE_PAYLOAD).period")"
+          while IFS= read -r report_date; do
+            request_body="$(REPORT_DATE="$report_date" COMMIT_SHA="$commit_sha" node -e "process.stdout.write(JSON.stringify({period:JSON.parse(process.env.SALES_UPDATE_PAYLOAD).period,date:process.env.REPORT_DATE,commitSha:process.env.COMMIT_SHA}))")"
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              --request POST "$REPORT_WEBHOOK_URL" \
+              --header "Authorization: Bearer $REPORT_WEBHOOK_KEY" \
+              --header 'Content-Type: application/json' \
+              --data "$request_body"
+            echo
+          done < <(node -e "const p=JSON.parse(process.env.SALES_UPDATE_PAYLOAD); const dates=p.changes.map(c=>c.operation==='add_session'?c.session.date:c.sessionId.slice(0,10)); console.log([...new Set(dates)].sort().join('\\n'))")

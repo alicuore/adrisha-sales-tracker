@@ -7,10 +7,16 @@ import {
   REMINDER_EVENTS,
   buildReminderEvents,
   buildReminderMessage,
+  buildDailyReport,
+  buildSalaryReply,
+  buildScheduleReply,
   calculateGmvProgress,
   eventKey,
+  handleTelegramUpdate,
+  normalizeCommand,
   resolveDueEvent,
-  runScheduled
+  runScheduled,
+  sendDailyReport
 } from './adrisha-live-reminder-worker.mjs';
 import worker from './adrisha-live-reminder-worker.mjs';
 
@@ -26,6 +32,19 @@ const month = {
   ],
   schedule: [
     { date: '2026-10-29', label: '7AM – 11AM', slots: [{ startTime: '07:00', endTime: '11:00' }] }
+  ]
+};
+
+const reportMonth = {
+  period: '2026-10',
+  approvedPayrollSeconds: 354_180,
+  sessions: [
+    { id: '2026-10-26-s01', date: '2026-10-26', sessionNumber: 1, startTime: '10:00', endTime: '14:00', durationSeconds: 339_420, gmvCents: 10_124_152 },
+    { id: '2026-10-27-s01', date: '2026-10-27', sessionNumber: 1, startTime: '10:35', endTime: '14:05', durationSeconds: 12_600, gmvCents: 285_907 },
+    { id: '2026-10-27-s02', date: '2026-10-27', sessionNumber: 2, startTime: '14:31', endTime: '15:07', durationSeconds: 2_160, gmvCents: 95_748 }
+  ],
+  schedule: [
+    { date: '2026-10-27', label: '10:35AM – 3:07PM', slots: [{ startTime: '10:35', endTime: '15:07' }] }
   ]
 };
 
@@ -95,6 +114,45 @@ test('message content matches the existing Telegram reminder format', () => {
   assert.match(message, /Starting in 4 hours/);
 });
 
+test('one-hour reminder omits GMV while four-hour reminder includes it', () => {
+  const shift = { date: '2026-10-29', label: '7AM – 11AM', startTime: '07:00', endTime: '11:00' };
+  const progress = calculateGmvProgress(month);
+  assert.match(buildReminderMessage(PILOT_EVENTS[2], shift, progress), /Current GMV/);
+  const oneHour = buildReminderMessage(PILOT_EVENTS[3], shift, undefined);
+  assert.doesNotMatch(oneHour, /Current GMV|Next milestone|Remaining to milestone/);
+  assert.match(oneHour, /Starting in 1 hour/);
+});
+
+test('daily report matches tracker totals and excludes estimated earnings', () => {
+  const report = buildDailyReport(reportMonth, '2026-10-27');
+  assert.match(report, /27th October 2026/);
+  assert.match(report, /Session 1[\s\S]*Start      : 10:35:00/);
+  assert.match(report, /Session 2[\s\S]*Sales      : RM957.48/);
+  assert.match(report, /Total Duration : 04:06:00/);
+  assert.match(report, /Updated Total Sales  : RM105,058.07/);
+  assert.match(report, /Total Hours          : 98:23:00/);
+  assert.match(report, /Hours Remaining      : 21:37:00/);
+  assert.match(report, /Commission   : RM8,000.00/);
+  assert.doesNotMatch(report, /Salary|Total Earn/);
+});
+
+test('salary reply is available only on demand', () => {
+  const reply = buildSalaryReply(reportMonth);
+  assert.match(reply, /ESTIMATED EARNINGS/);
+  assert.match(reply, /Salary      : RM1,639.73/);
+  assert.match(reply, /Commission  : RM8,000.00/);
+  assert.match(reply, /Total Earn  : RM9,639.73/);
+});
+
+test('schedule replies use English for days without a livestream', () => {
+  assert.match(buildScheduleReply(reportMonth, '2026-10-28'), /No livestream scheduled today\./);
+});
+
+test('plain and slash bot keywords normalize to the same command', () => {
+  assert.equal(normalizeCommand('gaji'), 'gaji');
+  assert.equal(normalizeCommand('/GAJI@AdrishaBot extra'), 'gaji');
+});
+
 test('GMV milestones advance in exact RM10,000 steps', () => {
   assert.deepEqual(calculateGmvProgress({ sessions: [{ id: 'a', gmvCents: 10_500_000 }] }), {
     totalGmvCents: 10_500_000,
@@ -158,4 +216,44 @@ test('manual test endpoint requires the admin secret', async () => {
   };
   const unauthorized = await worker.fetch(new Request('https://example.test/test', { method: 'POST' }), env);
   assert.equal(unauthorized.status, 401);
+});
+
+test('Telegram commands answer only the configured chat', async () => {
+  const env = { TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707' };
+  const sent = [];
+  const fetchImpl = async (url, options) => {
+    if (url.includes('raw.githubusercontent.com')) return response(reportMonth);
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const ignored = await handleTelegramUpdate({ message: { chat: { id: 999 }, text: 'sales' } }, env, fetchImpl);
+  assert.equal(ignored.reason, 'unauthorized-chat');
+  await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/sales' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].text, /Total GMV     : RM105,058.07/);
+});
+
+test('daily report is idempotent and corrections are labelled as updates', async () => {
+  const stored = new Map();
+  const messages = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (url, options) => {
+    if (url.includes('raw.githubusercontent.com')) return response(reportMonth);
+    messages.push(JSON.parse(options.body).text);
+    return response({ ok: true });
+  };
+  const first = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'a'.repeat(40) }, env, fetchImpl);
+  const duplicate = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'a'.repeat(40) }, env, fetchImpl);
+  const correction = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'b'.repeat(40) }, env, fetchImpl);
+  assert.equal(first.sent, true);
+  assert.equal(duplicate.reason, 'already-sent');
+  assert.equal(correction.updated, true);
+  assert.equal(messages.length, 2);
+  assert.match(messages[1], /UPDATED DAILY SALES REPORT/);
 });
