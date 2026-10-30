@@ -1,122 +1,189 @@
 # Adrisha's Sales Tracker
 
-A personal livestream sales, GMV, payroll and commission tracking dashboard built by Ali with ChatGPT Codex and deployed through GitHub Pages.
+A private-first livestream operations system for sales, GMV, payroll, commission, schedules, Telegram reminders and daily reporting. Built by Ali with ChatGPT Codex, hosted with GitHub Pages and automated with GitHub Actions and Cloudflare Workers.
 
-[Live dashboard](https://alicuore.github.io/adrisha-sales-tracker/)
+[Open the live dashboard](https://alicuore.github.io/adrisha-sales-tracker/)
 
-## Current Status
+## What Is Live
 
-Dashboard V2 is live in production on `main`. October 2026 is the single open/default month; January–September are completed. The dashboard:
+- Dashboard V2 on the `main` branch.
+- Authoritative monthly data stored as version-controlled JSON.
+- Phone-friendly sales publishing through GitHub Actions.
+- Production validation before every routine sales update.
+- Cloudflare Worker reminders four hours and one hour before each livestream.
+- Automatic Telegram daily reports after a successful sales publish.
+- On-demand Telegram commands for schedules, earnings, targets and analytics.
+- Duplicate-report protection and explicit updated/corrected report labels.
+- Optional private Telegram alerts when reminder or report delivery fails.
 
-- Loads authoritative business data from JSON.
-- Is read-only in the browser and does not use localStorage as a business-data source.
-- Automatically reflects published GitHub data when opened or reloaded.
-- Supports monthly tracking, comparison, yearly overview and schedules.
-- Is responsive for desktop and mobile.
+The dashboard is read-only in the browser. Browser local storage cannot override published business data.
 
-## Current Workflow
+## Routine Sales Workflow
 
-Routine sales publishing does not require Codex or local tests:
+1. Upload the screenshot or confirmed session data to the monthly sales-tracking chat.
+2. Verify the proposed sessions or corrections, monthly GMV and approved payroll total.
+3. Copy the complete JSON payload.
+4. In GitHub, open **Actions → Publish sales update → Run workflow**.
+5. Keep `main` selected, paste the payload and run the workflow.
+6. The workflow validates the payload, updates only the active month, runs the complete production test suite and commits to `main` if the branch has not changed.
+7. After the commit, the workflow calls the Cloudflare Worker and sends the daily Telegram report.
+8. Reload the dashboard and confirm the published totals.
 
-1. Upload the screenshot or confirmed sales data to the monthly ChatGPT sales-tracking chat.
-2. Verify the proposed additions, corrections, expected monthly total and expected approved payroll, then copy the complete JSON payload.
-3. On GitHub, open **Actions → Publish sales update → Run workflow**, keep `main` selected, paste the JSON into the single payload field and run it.
-4. Wait for the workflow to pass. It validates the payload, changes only the current open month, runs production validation and all tests, then commits directly to `main` if `main` has not changed during the run.
-5. GitHub Pages publishes the dashboard; reload it and confirm the totals.
+The publisher accepts batched `add_session`, `correct_gmv` and `correct_session_timing` operations. Approved payroll is authoritative and remains independent from summed session duration. Routine publishing should not use the GitHub file editor.
 
-The single publisher accepts batches containing `correct_gmv`, `correct_session_timing` and `add_session` changes. A GMV correction changes only `gmvCents`; a timing correction changes only `endTime` and `durationSeconds`. `expectedApprovedPayrollSeconds` is the authoritative exact payroll total for the month after the complete batch; it is independent from session durations. The resulting GMV total must exactly match the payload safeguard. Routine publishing should not use Codex, a local computer or the GitHub file editor.
+Use pull requests for application code, schema, business rules, schedules, attendance, historical data or automation changes.
 
-Direct commits to `main` also trigger validation, but that check runs after the commit and does not provide the publisher's pre-commit safeguards. Use **Publish sales update** for routine sales changes. Use pull requests for development, schema, business-rule, schedule, attendance or historical changes.
+## Telegram Bot
 
-Codex remains useful for dashboard development, new month setup, schema changes and bug fixes.
+The Telegram bot is restricted to the configured host chat. Its English command menu provides:
+
+| Command | Purpose |
+| --- | --- |
+| `/salary` | Estimated salary and commission |
+| `/sales` | Total GMV, hours and tier progress |
+| `/schedule` | Today's livestream schedule |
+| `/tomorrow` | Tomorrow's livestream schedule |
+| `/report` | Latest daily sales report |
+| `/target` | GMV required for the next tier |
+| `/week` | Current weekly summary, including cross-month weeks |
+| `/month` | Current monthly summary |
+| `/performance` | Sales performance insights |
+| `/status` | Bot, storage, report and reminder status |
+| `/menu` | Complete command list |
+
+Commands also work without the leading `/`. Earlier Malay commands remain supported as hidden compatibility aliases.
+
+### Reminder and Reporting Behaviour
+
+- The four-hour reminder includes schedule and GMV milestone progress.
+- The one-hour reminder contains the cleaner schedule-only message.
+- Successful sales publishes send a daily report automatically.
+- Corrections are labelled `CORRECTED DAILY SALES REPORT`.
+- Later non-correction republishes are labelled `UPDATED DAILY SALES REPORT`.
+- The Worker stores a report signature in Cloudflare KV to prevent duplicate delivery, even across different commit SHAs.
+- Salary and estimated earnings are shown only when requested with `/salary`.
+
+## System Architecture
+
+```text
+Confirmed session data
+        ↓
+GitHub Actions publisher
+        ↓
+Validated monthly JSON on main
+        ├──→ GitHub Pages dashboard
+        └──→ Cloudflare Worker report endpoint
+                    ↓
+              Telegram bot
+
+Cloudflare Cron + monthly schedules
+        ↓
+Reminder Worker + KV delivery state
+        ↓
+Telegram reminders
+```
 
 ## Source of Truth
 
-- Published business data: `data/2026/*.json`
-- Business rules: `data/config/business-rules.json`
-- Month list: `data/manifest.json`
+- Monthly sales, payroll and schedules: `data/2026/*.json`
+- Active/default month and month list: `data/manifest.json`
+- Payroll and commission rules: `data/config/business-rules.json`
+- Reminder, bot and report logic: `cloudflare/adrisha-live-reminder-worker.mjs`
 
-GMV is stored as integer cents. Durations and payroll are stored as integer seconds. Approved payroll hours are independent from summed session duration.
+GMV is stored as integer cents. Durations and payroll are stored as integer seconds. Actual livestream sessions take precedence over planned attendance status.
 
-Browser localStorage cannot override published business data. Actual livestream sessions take precedence over planned leave/off status.
-
-## Historical Protection and Live-Month Validation
-
-January–August 2026 are frozen historical periods protected by historical baseline validation. September is frozen against its final production commit `aea90a7f265065e4f6ec2ecfe1365bb3189565e3` (45 sessions, RM150,275.26, 390,301 approved payroll seconds), not the older Phase 1 PRELOADED snapshot. Baselines are test-only reconciliation fixtures; runtime totals continue to come from session records and approved payroll. Frozen periods are identified by `baseline.frozenPeriods` and must not silently change.
-
-October starts with empty sessions and attendance, zero GMV/payroll/commission, and 31 Product Owner-confirmed schedule dates totaling 127 hours. Future session IDs use `2026-10-DD-sNN`. After this structural rollover is approved and merged, continue routine updates through **Publish sales update** using period `2026-10`.
-
-The current live month can receive legitimate new sessions and GMV corrections without updating frozen fixtures. Live-month updates still undergo schema, duplicate-ID, schedule, attendance, totals and business-rule validation.
+Frozen historical periods are protected by baseline validation. The active month can receive approved sessions and corrections while still undergoing schema, duplicate-ID, schedule, totals and business-rule validation.
 
 ## Repository Structure
 
 ```text
 adrisha-sales-tracker/
-├── index.html
-├── README.md
-├── js/
-│   └── data-layer.js
+├── .github/workflows/
+│   ├── publish-sales-update.yml
+│   └── validate-data.yml
+├── cloudflare/
+│   ├── adrisha-live-reminder-worker.mjs
+│   └── adrisha-live-reminder-worker.test.mjs
 ├── data/
 │   ├── manifest.json
-│   ├── config/
-│   │   └── business-rules.json
-│   └── 2026/
-│       ├── 01-january.json
-│       ├── 02-february.json
-│       ├── 03-march.json
-│       ├── 04-april.json
-│       ├── 05-may.json
-│       ├── 06-june.json
-│       ├── 07-july.json
-│       ├── 08-august.json
-│       ├── 09-september.json
-│       └── 10-october.json
-├── scripts/
-│   └── publish-sales-update.mjs
-└── tests/
-    ├── validate-data.mjs
-    ├── calculations.test.mjs
-    ├── data-layer.test.mjs
-    ├── publish-sales-update.test.mjs
-    ├── historical-baseline.json
-    └── fixtures/
-        ├── legacy-phase1.js
-        └── october-2026-schedule.json
+│   ├── config/business-rules.json
+│   └── 2026/*.json
+├── js/data-layer.js
+├── scripts/publish-sales-update.mjs
+├── tests/
+├── index.html
+└── README.md
 ```
-
-The legacy fixture is a test-only migration reference; the dashboard does not load it.
 
 ## Validation
 
-Run the existing checks with Node.js:
+Run the production data checks:
 
 ```sh
 node tests/validate-data.mjs
 node --test tests/*.test.mjs
 ```
 
-GitHub Actions runs these same commands on pushes and pull requests affecting any `data/**/*.json`, `js/**`, `index.html`, `tests/**`, or the validation workflow itself. This includes future monthly JSON files, the manifest, business rules, and historical fixtures. It can also be run manually from the Actions tab once available on the default branch. The separate **Publish sales update** workflow runs the same checks before it commits a routine current-month update. Both use Node.js 24 with no dependency installation. README-only changes do not trigger validation. Preview the dashboard through a local HTTP server so JSON fetches work normally.
+Run the Cloudflare Worker checks:
+
+```sh
+node --check cloudflare/adrisha-live-reminder-worker.mjs
+node --test cloudflare/adrisha-live-reminder-worker.test.mjs
+```
+
+GitHub Actions runs the relevant validation on application and data changes. The routine publisher uses Node.js 24 and requires no dependency installation.
+
+## Cloudflare Operations
+
+The Worker health endpoint is:
+
+```text
+https://adrisha-live-reminder.alicuore.workers.dev/health
+```
+
+A healthy response reports Telegram, KV state, commands and reports as configured, together with the next reminder event.
+
+Production configuration is stored only as Cloudflare bindings or encrypted secrets. Required names are:
+
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `ADMIN_KEY`
+- `REMINDER_STATE` KV binding
+
+GitHub Actions uses the encrypted repository secret `REPORT_WEBHOOK_KEY`. In the current deployment it matches the Worker report authorization key. Never commit or paste secret values into source files, issues, pull requests or documentation.
+
+Optional private failure alerts use:
+
+- `ADMIN_TELEGRAM_CHAT_ID`
+
+When configured, the Worker attempts to notify the administrator if a scheduled reminder or daily report delivery fails.
+
+After deploying a new Worker command list, call the authenticated `/configure-telegram` endpoint once to refresh Telegram's webhook and visible command menu.
+
+## Deployment
+
+- Production branch: `main`
+- Dashboard hosting: GitHub Pages
+- Reminder/report runtime: Cloudflare Workers
+- Delivery state: Cloudflare KV
+- Routine sales publishing: GitHub Actions
+
+Dashboard application changes deploy from `main` through GitHub Pages. Worker source changes must also be deployed to the production Cloudflare Worker after merge.
 
 ## Project Roles
 
 ### Product Owner
 
-Ali Zainal Abidin is responsible for business rules, data approval, product direction and final human approval before production changes.
+Ali Zainal Abidin owns the business rules, data approval, product direction and final production approval.
 
 ### AI Development Partner
 
-ChatGPT / Codex by OpenAI provides architecture and technical guidance, payload preparation, validation support and development assistance. Codex handles development under human direction; routine approved sales updates are published through the phone-friendly GitHub Action without Codex.
+ChatGPT / Codex by OpenAI supports architecture, implementation, payload preparation, testing, validation and operations under human direction.
 
-## Deployment
+## Next Phase
 
-- Production branch: `main`
-- Hosting: GitHub Pages
-- Production updates are pushed to `origin/main`.
-- Routine sales updates normally modify only the relevant monthly JSON.
-- `index.html` should change only for deliberate dashboard UI/application changes.
+- Configure private system-failure alerts for the administrator.
+- Add safer operational diagnostics and recovery guidance.
+- Explore screenshot-to-publish automation while keeping human approval as the final gate.
 
-## Future Improvements
-
-- Further workflow automation while preserving human approval.
-
-Built as a personal productivity project. Human approval remains the final gate before production changes.
+Built as a personal productivity system. Human approval remains the final gate before production changes.
