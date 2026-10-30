@@ -6,6 +6,7 @@ const MILESTONE_STEP_CENTS = 10_000 * 100;
 const MONTHLY_HOURS_TARGET_SECONDS = 120 * 60 * 60;
 const HOURLY_RATE = '16.6667';
 const REPORT_STATE_TTL_SECONDS = 180 * 24 * 60 * 60;
+const LATEST_REPORT_STATE_KEY = 'telegram-report:v1:latest';
 const REPOSITORY = 'alicuore/adrisha-sales-tracker';
 const MONTH_DATA_PATHS = Object.freeze({
   '2026-10': 'data/2026/10-october.json',
@@ -245,7 +246,7 @@ function ordinalDate(date) {
   return `${day}${suffix} ${monthYear}`;
 }
 
-function buildDailyReport(month, date, updated = false) {
+function buildDailyReport(month, date, reportType = 'daily') {
   const dailySessions = month.sessions
     .filter(session => session.date === date)
     .sort((a, b) => a.sessionNumber - b.sessionNumber);
@@ -263,7 +264,13 @@ function buildDailyReport(month, date, updated = false) {
     `Sales      : RM${formatGmv(session.gmvCents)}`
   ].join('\n')).join('\n\n');
   const c = summary.commission;
-  const title = updated ? '\uD83D\uDD04 UPDATED DAILY SALES REPORT' : '\uD83D\uDCCA DAILY SALES REPORT';
+  const titles = {
+    daily: '\uD83D\uDCCA DAILY SALES REPORT',
+    updated: '\uD83D\uDD04 UPDATED DAILY SALES REPORT',
+    corrected: '\u270F\uFE0F CORRECTED DAILY SALES REPORT'
+  };
+  const title = titles[reportType];
+  if (!title) throw new Error(`Unknown daily report type: ${reportType}.`);
   return `${title}\n\n${ordinalDate(date)}\n\n${sessionBlocks}\n\n`
     + `Total Duration : ${formatDuration(dailySeconds)}\nTotal Sales    : RM${formatGmv(dailyGmvCents)}\n\n`
     + `Previous Total Sales : RM${formatGmv(previousGmvCents)}\n`
@@ -402,15 +409,131 @@ function buildSalaryReply(month) {
     + `Based on ${formatDuration(s.payrollSeconds)} approved hours and current GMV.`;
 }
 
+function latestSessionDate(month) {
+  return month.sessions.reduce((latest, session) => session.date > latest ? session.date : latest, '');
+}
+
+function formatPeriod(period) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE, month: 'long', year: 'numeric'
+  }).format(new Date(`${period}-01T12:00:00.000Z`));
+}
+
+function buildTargetReply(month, today = localDate()) {
+  const s = summarizeMonth(month);
+  const completedDates = new Set(month.sessions.map(session => session.date));
+  const remainingShifts = month.schedule.filter(entry => entry.date >= today && !completedDates.has(entry.date));
+  const count = remainingShifts.length;
+  const requiredPerShiftCents = count > 0 ? Math.ceil(s.commission.remainingCents / count) : null;
+  return `\uD83C\uDFAF TARGET PROGRESS\n\n`
+    + `Current GMV       : RM${formatGmv(s.gmvCents)}\n`
+    + `Next Tier         : RM${formatGmv(s.commission.nextTierCents)}\n`
+    + `GMV Remaining     : RM${formatGmv(s.commission.remainingCents)}\n\n`
+    + `Remaining Shifts  : ${count}\n`
+    + (requiredPerShiftCents === null
+      ? 'Required per Shift: No remaining scheduled shifts'
+      : `Required per Shift: RM${formatGmv(requiredPerShiftCents)}`)
+    + `\nHours Remaining   : ${formatDuration(s.hoursRemainingSeconds)}`;
+}
+
+function weekRange(date) {
+  const day = new Date(`${date}T12:00:00.000Z`).getUTCDay();
+  const mondayOffset = (day + 6) % 7;
+  const start = addDays(date, -mondayOffset);
+  return { start, end: addDays(start, 6) };
+}
+
+function buildWeekReply(monthOrMonths, today = localDate()) {
+  const { start, end } = weekRange(today);
+  const months = Array.isArray(monthOrMonths) ? monthOrMonths : [monthOrMonths];
+  const sessions = months.flatMap(month => month.sessions)
+    .filter(session => session.date >= start && session.date <= end);
+  const gmvCents = sessions.reduce((sum, session) => sum + session.gmvCents, 0);
+  const seconds = sessions.reduce((sum, session) => sum + session.durationSeconds, 0);
+  const activeDays = new Set(sessions.map(session => session.date)).size;
+  return `\uD83D\uDCC6 WEEKLY SUMMARY\n\n`
+    + `${formatDate(start)} \u2013 ${formatDate(end)}\n\n`
+    + `Sales       : RM${formatGmv(gmvCents)}\n`
+    + `Hours       : ${formatDuration(seconds)}\n`
+    + `Sessions    : ${sessions.length}\n`
+    + `Active Days : ${activeDays}`;
+}
+
+function buildMonthReply(month) {
+  const s = summarizeMonth(month);
+  return `\uD83D\uDCC5 MONTHLY SUMMARY\n\n`
+    + `${formatPeriod(month.period)}\n\n`
+    + `Total GMV       : RM${formatGmv(s.gmvCents)}\n`
+    + `Total Hours     : ${formatDuration(s.payrollSeconds)}\n`
+    + `Sessions        : ${s.sessions.length}\n`
+    + `Hours Progress  : ${s.hoursProgress.toFixed(2)}%\n\n`
+    + `Current Tier    : RM${formatGmv(s.commission.minGmvCents)} \u2013 RM${formatGmv(s.commission.maxGmvCents)}\n`
+    + `Commission      : RM${formatGmv(s.commission.commissionCents)}\n`
+    + `Next Tier       : RM${formatGmv(s.commission.nextTierCents)}\n`
+    + `GMV Remaining   : RM${formatGmv(s.commission.remainingCents)}`;
+}
+
+function buildPerformanceReply(month) {
+  if (month.sessions.length === 0) return `\uD83D\uDCC8 PERFORMANCE\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
+  const daily = new Map();
+  let totalGmvCents = 0;
+  let totalSeconds = 0;
+  for (const session of month.sessions) {
+    totalGmvCents += session.gmvCents;
+    totalSeconds += session.durationSeconds;
+    daily.set(session.date, (daily.get(session.date) ?? 0) + session.gmvCents);
+  }
+  const [bestDate, bestGmvCents] = [...daily.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  const averageSessionCents = Math.round(totalGmvCents / month.sessions.length);
+  const gmvPerHourCents = totalSeconds > 0 ? Math.round(totalGmvCents * 3600 / totalSeconds) : 0;
+  return `\uD83D\uDCC8 PERFORMANCE\n\n`
+    + `Best Sales Day       : ${formatDate(bestDate)}\n`
+    + `Best Daily Sales     : RM${formatGmv(bestGmvCents)}\n`
+    + `Average per Session  : RM${formatGmv(averageSessionCents)}\n`
+    + `Average GMV per Hour : RM${formatGmv(gmvPerHourCents)}\n`
+    + `Recorded Sessions    : ${month.sessions.length}`;
+}
+
+function buildStatusReply(month, now = new Date(), latestReport = null, env = {}) {
+  const next = resolveNextEvent(now);
+  const latestDate = latestSessionDate(month);
+  return `\uD83D\uDFE2 SYSTEM STATUS\n\n`
+    + `Bot              : Online\n`
+    + `Data Period      : ${formatPeriod(month.period)}\n`
+    + `Sessions Recorded: ${month.sessions.length}\n`
+    + `Latest Sales Data: ${latestDate ? formatDate(latestDate) : 'Not published yet'}\n`
+    + `Latest Report    : ${latestReport?.date ? formatDate(latestReport.date) : 'Not recorded yet'}\n`
+    + `Storage          : ${env.REMINDER_STATE ? 'Connected' : 'Unavailable'}\n\n`
+    + `Next Reminder    : ${next ? `${formatDate(next.date)} (${next.reminderHours}-hour reminder)` : 'No future reminder scheduled'}`;
+}
+
 const MENU_MESSAGE = `\uD83E\uDD16 ADRISHA BOT MENU
 
-/gaji \u2013 estimated salary and commission
+/salary \u2013 estimated salary and commission
 /sales \u2013 total GMV, hours and tier progress
-/jadual \u2013 today\u2019s livestream schedule
-/esok \u2013 tomorrow\u2019s livestream schedule
+/schedule \u2013 today\u2019s livestream schedule
+/tomorrow \u2013 tomorrow\u2019s livestream schedule
+/report \u2013 latest daily sales report
+/target \u2013 GMV required for the next tier
+/week \u2013 current weekly summary
+/month \u2013 current monthly summary
+/performance \u2013 sales performance insights
+/status \u2013 bot and data health
 /menu \u2013 show this command list
 
 You can also type the command without /.`;
+
+const COMMAND_ALIASES = Object.freeze({
+  gaji: 'salary', jadual: 'schedule', esok: 'tomorrow',
+  laporan: 'report', minggu: 'week', bulan: 'month', prestasi: 'performance'
+});
+
+async function latestReportState(env) {
+  if (!env.REMINDER_STATE) return null;
+  const value = await env.REMINDER_STATE.get(LATEST_REPORT_STATE_KEY);
+  if (!value) return null;
+  try { return JSON.parse(value); } catch { return null; }
+}
 
 async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Date()) {
   const message = update?.message;
@@ -420,18 +543,46 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
   if (String(message.chat.id) !== String(env.TELEGRAM_CHAT_ID)) {
     return { handled: false, reason: 'unauthorized-chat' };
   }
-  const command = normalizeCommand(message.text);
-  if (!['gaji', 'sales', 'jadual', 'esok', 'menu', 'start', 'help'].includes(command)) {
+  const inputCommand = normalizeCommand(message.text);
+  const command = COMMAND_ALIASES[inputCommand] ?? inputCommand;
+  if (!['salary', 'sales', 'schedule', 'tomorrow', 'report', 'target', 'week', 'month',
+    'performance', 'status', 'menu', 'start', 'help'].includes(command)) {
     return { handled: false, reason: 'unknown-command' };
   }
   let reply = MENU_MESSAGE;
   if (!['menu', 'start', 'help'].includes(command)) {
     const today = localDate(now);
-    const date = command === 'esok' ? addDays(today, 1) : today;
-    const month = await loadMonth(date.slice(0, 7), fetchImpl);
-    if (command === 'gaji') reply = buildSalaryReply(month);
+    const date = command === 'tomorrow' ? addDays(today, 1) : today;
+    let reportState = null;
+    if (command === 'report' || command === 'status') reportState = await latestReportState(env);
+    const period = command === 'report' && reportState?.period ? reportState.period : date.slice(0, 7);
+    const ref = command === 'report' && reportState?.commitSha ? reportState.commitSha : 'main';
+    const month = await loadMonth(period, fetchImpl, ref);
+    if (command === 'salary') reply = buildSalaryReply(month);
     else if (command === 'sales') reply = buildSalesReply(month);
-    else reply = buildScheduleReply(month, date, command === 'esok' ? 'Tomorrow' : 'Today');
+    else if (command === 'schedule' || command === 'tomorrow') {
+      reply = buildScheduleReply(month, date, command === 'tomorrow' ? 'Tomorrow' : 'Today');
+    } else if (command === 'target') reply = buildTargetReply(month, today);
+    else if (command === 'week') {
+      const { start, end } = weekRange(today);
+      const weekPeriods = [...new Set([start.slice(0, 7), end.slice(0, 7)])];
+      const weekMonths = [month];
+      for (const weekPeriod of weekPeriods) {
+        if (weekPeriod !== month.period && MONTH_DATA_PATHS[weekPeriod]) {
+          weekMonths.push(await loadMonth(weekPeriod, fetchImpl));
+        }
+      }
+      reply = buildWeekReply(weekMonths, today);
+    }
+    else if (command === 'month') reply = buildMonthReply(month);
+    else if (command === 'performance') reply = buildPerformanceReply(month);
+    else if (command === 'status') reply = buildStatusReply(month, now, reportState, env);
+    else {
+      const reportDate = reportState?.date ?? latestSessionDate(month);
+      reply = reportDate
+        ? buildDailyReport(month, reportDate, reportState?.reportType ?? 'daily')
+        : `\uD83D\uDCC4 LATEST DAILY SALES REPORT\n\nNo daily sales report is available yet.`;
+    }
   }
   await sendTelegram(reply, env, fetchImpl, message.chat.id);
   return { handled: true, command };
@@ -441,24 +592,52 @@ function reportStateKey(period, date) {
   return `telegram-report:v1:${period}:${date}`;
 }
 
-async function sendDailyReport({ period, date, commitSha }, env, fetchImpl = fetch) {
+function reportSignature(month, date) {
+  const summary = summarizeMonth(month, date);
+  const sessions = month.sessions.filter(session => session.date === date)
+    .sort((a, b) => a.sessionNumber - b.sessionNumber)
+    .map(({ id, startTime, endTime, durationSeconds, gmvCents }) => ({ id, startTime, endTime, durationSeconds, gmvCents }));
+  return JSON.stringify({ date, sessions, gmvCents: summary.gmvCents, payrollSeconds: summary.payrollSeconds });
+}
+
+async function sendDailyReport({ period, date, commitSha, corrected = false }, env, fetchImpl = fetch) {
   if (!env.REMINDER_STATE) throw new Error('REMINDER_STATE KV binding is not configured.');
-  if (!/^\d{4}-\d{2}$/.test(period) || !date.startsWith(`${period}-`) || !/^[0-9a-f]{40}$/i.test(commitSha)) {
+  if (!/^\d{4}-\d{2}$/.test(period) || !date.startsWith(`${period}-`) ||
+      !/^[0-9a-f]{40}$/i.test(commitSha) || typeof corrected !== 'boolean') {
     throw new Error('Report request must contain a valid period, date and commit SHA.');
   }
   const key = reportStateKey(period, date);
   const previous = await env.REMINDER_STATE.get(key);
+  let previousState = null;
   if (previous) {
-    const state = JSON.parse(previous);
-    if (state.commitSha === commitSha) return { sent: false, reason: 'already-sent', key };
+    try { previousState = JSON.parse(previous); } catch { previousState = null; }
+    if (previousState?.commitSha === commitSha) return { sent: false, reason: 'already-sent', key };
   }
   const month = await loadMonth(period, fetchImpl, commitSha);
-  const message = buildDailyReport(month, date, Boolean(previous));
+  const signature = reportSignature(month, date);
+  if (previousState?.signature === signature) return { sent: false, reason: 'already-sent-data', key };
+  const reportType = corrected ? 'corrected' : previousState ? 'updated' : 'daily';
+  const message = buildDailyReport(month, date, reportType);
   await sendTelegram(message, env, fetchImpl);
-  await env.REMINDER_STATE.put(key, JSON.stringify({ commitSha, sentAt: new Date().toISOString() }), {
+  const state = { period, date, commitSha, signature, reportType, sentAt: new Date().toISOString() };
+  await env.REMINDER_STATE.put(key, JSON.stringify(state), {
     expirationTtl: REPORT_STATE_TTL_SECONDS
   });
-  return { sent: true, updated: Boolean(previous), key };
+  await env.REMINDER_STATE.put(LATEST_REPORT_STATE_KEY, JSON.stringify(state), {
+    expirationTtl: REPORT_STATE_TTL_SECONDS
+  });
+  return { sent: true, updated: Boolean(previousState), corrected, reportType, key };
+}
+
+async function sendAdminAlert(message, env, fetchImpl = fetch) {
+  if (!env.ADMIN_TELEGRAM_CHAT_ID) return false;
+  try {
+    await sendTelegram(`\u26A0\uFE0F ADRISHA BOT ALERT\n\n${message}`, env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID);
+    return true;
+  } catch (error) {
+    console.error(JSON.stringify({ type: 'admin-alert-error', message: error.message }));
+    return false;
+  }
 }
 
 async function configureTelegram(origin, env, fetchImpl = fetch) {
@@ -471,10 +650,16 @@ async function configureTelegram(origin, env, fetchImpl = fetch) {
     drop_pending_updates: true
   }, env, fetchImpl);
   const commands = await telegramApi('setMyCommands', { commands: [
-    { command: 'gaji', description: 'Estimated salary and commission' },
+    { command: 'salary', description: 'Estimated salary and commission' },
     { command: 'sales', description: 'Total GMV, hours and tier progress' },
-    { command: 'jadual', description: 'Today\'s livestream schedule' },
-    { command: 'esok', description: 'Tomorrow\'s livestream schedule' },
+    { command: 'schedule', description: 'Today\'s livestream schedule' },
+    { command: 'tomorrow', description: 'Tomorrow\'s livestream schedule' },
+    { command: 'report', description: 'Latest daily sales report' },
+    { command: 'target', description: 'GMV required for the next tier' },
+    { command: 'week', description: 'Current weekly summary' },
+    { command: 'month', description: 'Current monthly summary' },
+    { command: 'performance', description: 'Sales performance insights' },
+    { command: 'status', description: 'Bot and data health' },
     { command: 'menu', description: 'Show all commands' }
   ] }, env, fetchImpl);
   return { webhook: webhook.ok, commands: commands.ok };
@@ -512,6 +697,7 @@ export default {
         const result = await sendDailyReport(await request.json(), env);
         return jsonResponse({ ok: true, ...result });
       } catch (error) {
+        await sendAdminAlert(`Daily report delivery failed: ${error.message}`, env);
         return jsonResponse({ ok: false, error: error.message }, 400);
       }
     }
@@ -551,8 +737,9 @@ export default {
     ctx.waitUntil(
       runScheduled(now, env).then(result => {
         console.log(JSON.stringify({ type: 'scheduled-check', at: now.toISOString(), ...result }));
-      }).catch(error => {
+      }).catch(async error => {
         console.error(JSON.stringify({ type: 'scheduled-error', at: now.toISOString(), message: error.message }));
+        await sendAdminAlert(`Scheduled reminder failed: ${error.message}`, env);
         throw error;
       })
     );
@@ -569,6 +756,11 @@ export {
   buildSalaryReply,
   buildSalesReply,
   buildScheduleReply,
+  buildTargetReply,
+  buildWeekReply,
+  buildMonthReply,
+  buildPerformanceReply,
+  buildStatusReply,
   calculateGmvProgress,
   commissionProgress,
   eventKey,
@@ -579,8 +771,10 @@ export {
   localDate,
   normalizeCommand,
   reportStateKey,
+  reportSignature,
   resolveDueEvent,
   runScheduled,
   sendDailyReport,
   sendTelegram
 };
+
