@@ -9,6 +9,11 @@ import {
   buildReminderMessage,
   buildDailyReport,
   buildSalaryReply,
+  buildTargetReply,
+  buildWeekReply,
+  buildMonthReply,
+  buildPerformanceReply,
+  buildStatusReply,
   buildScheduleReply,
   calculateGmvProgress,
   eventKey,
@@ -149,8 +154,68 @@ test('schedule replies use English for days without a livestream', () => {
 });
 
 test('plain and slash bot keywords normalize to the same command', () => {
-  assert.equal(normalizeCommand('gaji'), 'gaji');
-  assert.equal(normalizeCommand('/GAJI@AdrishaBot extra'), 'gaji');
+  assert.equal(normalizeCommand('salary'), 'salary');
+  assert.equal(normalizeCommand('/SALARY@AdrishaBot extra'), 'salary');
+});
+
+test('target, week, month and performance insights use tracker data', () => {
+  const targetMonth = {
+    ...reportMonth,
+    schedule: [
+      ...reportMonth.schedule,
+      { date: '2026-10-28', label: '11AM – 3PM', slots: [{ startTime: '11:00', endTime: '15:00' }] },
+      { date: '2026-10-29', label: '7AM – 11AM', slots: [{ startTime: '07:00', endTime: '11:00' }] }
+    ]
+  };
+  const target = buildTargetReply(targetMonth, '2026-10-28');
+  assert.match(target, /GMV Remaining     : RM4,941.93/);
+  assert.match(target, /Remaining Shifts  : 2/);
+  assert.match(target, /Required per Shift: RM2,470.97/);
+
+  const week = buildWeekReply(reportMonth, '2026-10-27');
+  assert.match(week, /WEEKLY SUMMARY/);
+  assert.match(week, /Sales       : RM105,058.07/);
+  assert.match(week, /Hours       : 98:23:00/);
+
+  const monthly = buildMonthReply(reportMonth);
+  assert.match(monthly, /MONTHLY SUMMARY/);
+  assert.match(monthly, /October 2026/);
+  assert.match(monthly, /Sessions        : 3/);
+
+  const performance = buildPerformanceReply(reportMonth);
+  assert.match(performance, /Best Sales Day       : Monday, 26 October 2026/);
+  assert.match(performance, /Best Daily Sales     : RM101,241.52/);
+  assert.match(performance, /Recorded Sessions    : 3/);
+});
+
+test('weekly summary includes sessions across a month boundary', () => {
+  const novemberWeekMonth = {
+    period: '2026-11',
+    sessions: [
+      { id: '2026-11-01-s01', date: '2026-11-01', sessionNumber: 1, startTime: '12:00', endTime: '13:00', durationSeconds: 3_600, gmvCents: 50_000 }
+    ],
+    schedule: []
+  };
+  const week = buildWeekReply([reportMonth, novemberWeekMonth], '2026-11-01');
+  assert.match(week, /Monday, 26 October 2026 – Sunday, 1 November 2026/);
+  assert.match(week, /Sales       : RM105,558.07/);
+  assert.match(week, /Hours       : 99:23:00/);
+  assert.match(week, /Sessions    : 4/);
+  assert.match(week, /Active Days : 3/);
+});
+
+test('status reply reports data health and the next reminder', () => {
+  const reply = buildStatusReply(
+    reportMonth,
+    new Date('2026-10-27T12:00:00Z'),
+    { date: '2026-10-27' },
+    { REMINDER_STATE: {} }
+  );
+  assert.match(reply, /SYSTEM STATUS/);
+  assert.match(reply, /Bot              : Online/);
+  assert.match(reply, /Storage          : Connected/);
+  assert.match(reply, /Latest Report    : Tuesday, 27 October 2026/);
+  assert.match(reply, /Next Reminder    : Wednesday, 28 October 2026 \(4-hour reminder\)/);
 });
 
 test('GMV milestones advance in exact RM10,000 steps', () => {
@@ -229,11 +294,15 @@ test('Telegram commands answer only the configured chat', async () => {
   const ignored = await handleTelegramUpdate({ message: { chat: { id: 999 }, text: 'sales' } }, env, fetchImpl);
   assert.equal(ignored.reason, 'unauthorized-chat');
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/sales' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
-  assert.equal(sent.length, 1);
+  await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/salary' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
+  await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/gaji' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
+  assert.equal(sent.length, 3);
   assert.match(sent[0].text, /Total GMV     : RM105,058.07/);
+  assert.match(sent[1].text, /ESTIMATED EARNINGS/);
+  assert.equal(sent[1].text, sent[2].text);
 });
 
-test('daily report is idempotent and corrections are labelled as updates', async () => {
+test('daily report is idempotent, data-aware and explicitly labels corrections', async () => {
   const stored = new Map();
   const messages = [];
   const env = {
@@ -244,16 +313,38 @@ test('daily report is idempotent and corrections are labelled as updates', async
     }
   };
   const fetchImpl = async (url, options) => {
-    if (url.includes('raw.githubusercontent.com')) return response(reportMonth);
+    if (url.includes('raw.githubusercontent.com')) {
+      if (url.includes('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb') ||
+          url.includes('cccccccccccccccccccccccccccccccccccccccc')) {
+        return response({
+          ...reportMonth,
+          sessions: reportMonth.sessions.map(session => session.id === '2026-10-27-s02'
+            ? { ...session, gmvCents: 100_000 }
+            : session)
+        });
+      }
+      return response(reportMonth);
+    }
     messages.push(JSON.parse(options.body).text);
     return response({ ok: true });
   };
   const first = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'a'.repeat(40) }, env, fetchImpl);
   const duplicate = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'a'.repeat(40) }, env, fetchImpl);
-  const correction = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'b'.repeat(40) }, env, fetchImpl);
+  const correction = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'b'.repeat(40), corrected: true }, env, fetchImpl);
+  const sameData = await sendDailyReport({ period: '2026-10', date: '2026-10-27', commitSha: 'c'.repeat(40) }, env, fetchImpl);
   assert.equal(first.sent, true);
   assert.equal(duplicate.reason, 'already-sent');
-  assert.equal(correction.updated, true);
+  assert.equal(correction.corrected, true);
+  assert.equal(correction.reportType, 'corrected');
+  assert.equal(sameData.reason, 'already-sent-data');
   assert.equal(messages.length, 2);
-  assert.match(messages[1], /UPDATED DAILY SALES REPORT/);
+  assert.match(messages[1], /CORRECTED DAILY SALES REPORT/);
+  assert.ok(stored.has('telegram-report:v1:latest'));
 });
+
+test('publish workflow forwards correction intent to the report endpoint', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/publish-sales-update.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /const corrected=changes\.some\(c=>c\.operation!=='add_session'\)/);
+  assert.match(workflow, /commitSha:process\.env\.COMMIT_SHA,corrected/);
+});
+

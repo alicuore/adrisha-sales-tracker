@@ -96,7 +96,7 @@ jobs:
           commit_sha="$(git rev-parse HEAD)"
           period="$(node -p "JSON.parse(process.env.SALES_UPDATE_PAYLOAD).period")"
           while IFS= read -r report_date; do
-            request_body="$(REPORT_DATE="$report_date" COMMIT_SHA="$commit_sha" node -e "process.stdout.write(JSON.stringify({period:JSON.parse(process.env.SALES_UPDATE_PAYLOAD).period,date:process.env.REPORT_DATE,commitSha:process.env.COMMIT_SHA}))")"
+            request_body="$(REPORT_DATE="$report_date" COMMIT_SHA="$commit_sha" node -e "const p=JSON.parse(process.env.SALES_UPDATE_PAYLOAD); const date=process.env.REPORT_DATE; const changes=p.changes.filter(c=>(c.operation==='add_session'?c.session.date:String(c.sessionId).slice(0,10))===date); const corrected=changes.some(c=>c.operation!=='add_session'); process.stdout.write(JSON.stringify({period:p.period,date,commitSha:process.env.COMMIT_SHA,corrected}))")"
             curl --fail-with-body --silent --show-error \
               --retry 3 --retry-delay 2 --retry-all-errors \
               --request POST "$REPORT_WEBHOOK_URL" \
@@ -105,3 +105,4 @@ jobs:
               --data "$request_body"
             echo
           done < <(node -e "const p=JSON.parse(process.env.SALES_UPDATE_PAYLOAD); const dates=p.changes.map(c=>c.operation==='add_session'?c.session.date:c.sessionId.slice(0,10)); console.log([...new Set(dates)].sort().join('\\n'))")
+
