@@ -5,8 +5,11 @@ import {
   PILOT_EVENTS,
   NOVEMBER_SHIFTS,
   REMINDER_EVENTS,
+  MOTIVATIONAL_QUOTES,
+  buildMonthEvents,
   buildReminderEvents,
   buildReminderMessage,
+  buildMotivationMessage,
   buildDailyReport,
   buildSalaryReply,
   buildTargetReply,
@@ -16,11 +19,15 @@ import {
   buildStatusReply,
   buildScheduleReply,
   calculateGmvProgress,
+  checkMissingReportWarning,
   eventKey,
   handleTelegramUpdate,
+  loadActiveMonth,
   normalizeCommand,
   resolveDueEvent,
   runScheduled,
+  selectMotivationalQuote,
+  sendMilestoneAlert,
   sendDailyReport
 } from './adrisha-live-reminder-worker.mjs';
 import worker from './adrisha-live-reminder-worker.mjs';
@@ -28,6 +35,20 @@ import worker from './adrisha-live-reminder-worker.mjs';
 const novemberData = JSON.parse(
   readFileSync(new URL('../data/2026/11-november.json', import.meta.url), 'utf8')
 );
+
+const manifest = {
+  defaultPeriod: '2026-10',
+  months: [
+    { period: '2026-10', status: 'open', path: '2026/10-october.json' },
+    { period: '2026-11', status: 'open', path: '2026/11-november.json' }
+  ]
+};
+
+const novemberManifest = {
+  ...manifest,
+  defaultPeriod: '2026-11',
+  months: manifest.months.map(item => ({ ...item, status: item.period === '2026-11' ? 'open' : 'completed' }))
+};
 
 const month = {
   period: '2026-10',
@@ -68,8 +89,11 @@ test('all eight events resolve for the full 59-minute retry window', () => {
 
 test('all 30 November shifts produce exact four-hour and one-hour events', () => {
   const events = buildReminderEvents(NOVEMBER_SHIFTS);
+  const monthEvents = buildMonthEvents(novemberData);
   assert.equal(NOVEMBER_SHIFTS.length, 30);
   assert.equal(events.length, 60);
+  assert.equal(monthEvents.length, 90);
+  assert.equal(monthEvents.filter(event => event.type === 'motivation').length, 30);
   assert.equal(REMINDER_EVENTS.length, 68);
   assert.deepEqual(events[0], {
     utc: '2026-11-01T08:00:00.000Z',
@@ -215,7 +239,7 @@ test('status reply reports data health and the next reminder', () => {
   assert.match(reply, /Bot              : Online/);
   assert.match(reply, /Storage          : Connected/);
   assert.match(reply, /Latest Report    : Tuesday, 27 October 2026/);
-  assert.match(reply, /Next Reminder    : Wednesday, 28 October 2026 \(4-hour reminder\)/);
+  assert.match(reply, /Next Automation  : No future event scheduled/);
 });
 
 test('GMV milestones advance in exact RM10,000 steps', () => {
@@ -243,17 +267,19 @@ test('successful send is marked only after Telegram accepts it', async () => {
   };
   let telegramCalls = 0;
   const fetchImpl = async url => {
-    if (url.includes('raw.githubusercontent.com')) return response(month);
+    if (url.endsWith('/data/manifest.json')) return response(novemberManifest);
+    if (url.includes('/data/2026/11-november.json')) return response(novemberData);
     telegramCalls += 1;
     return response({ ok: true });
   };
-  const now = new Date(PILOT_EVENTS[2].utc);
+  const firstEvent = buildMonthEvents(novemberData)[0];
+  const now = new Date(firstEvent.utc);
   const first = await runScheduled(now, env, fetchImpl);
   const second = await runScheduled(new Date(now.getTime() + 5 * 60 * 1000), env, fetchImpl);
   assert.equal(first.sent, true);
   assert.equal(second.reason, 'already-sent');
   assert.equal(telegramCalls, 1);
-  assert.ok(stored.has(eventKey(PILOT_EVENTS[2])));
+  assert.ok(stored.has(eventKey(firstEvent)));
 });
 
 test('Telegram failure is not marked, allowing the next cron check to retry', async () => {
@@ -266,10 +292,13 @@ test('Telegram failure is not marked, allowing the next cron check to retry', as
       put: async (key, value) => stored.set(key, value)
     }
   };
-  const fetchImpl = async url => url.includes('raw.githubusercontent.com')
-    ? response(month)
-    : response({ ok: false }, 500);
-  await assert.rejects(() => runScheduled(new Date(PILOT_EVENTS[2].utc), env, fetchImpl), /Telegram rejected/);
+  const fetchImpl = async url => {
+    if (url.endsWith('/data/manifest.json')) return response(novemberManifest);
+    if (url.includes('/data/2026/11-november.json')) return response(novemberData);
+    return response({ ok: false }, 500);
+  };
+  const firstEvent = buildMonthEvents(novemberData)[0];
+  await assert.rejects(() => runScheduled(new Date(firstEvent.utc), env, fetchImpl), /Telegram rejected/);
   assert.equal(stored.size, 0);
 });
 
@@ -287,7 +316,8 @@ test('Telegram commands answer only the configured chat', async () => {
   const env = { TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707' };
   const sent = [];
   const fetchImpl = async (url, options) => {
-    if (url.includes('raw.githubusercontent.com')) return response(reportMonth);
+    if (url.endsWith('/data/manifest.json')) return response(manifest);
+    if (url.includes('/data/2026/10-october.json')) return response(reportMonth);
     sent.push(JSON.parse(options.body));
     return response({ ok: true });
   };
@@ -314,6 +344,7 @@ test('daily report is idempotent, data-aware and explicitly labels corrections',
   };
   const fetchImpl = async (url, options) => {
     if (url.includes('raw.githubusercontent.com')) {
+      if (url.endsWith('/data/manifest.json')) return response(manifest);
       if (url.includes('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb') ||
           url.includes('cccccccccccccccccccccccccccccccccccccccc')) {
         return response({
@@ -340,6 +371,146 @@ test('daily report is idempotent, data-aware and explicitly labels corrections',
   assert.equal(messages.length, 2);
   assert.match(messages[1], /CORRECTED DAILY SALES REPORT/);
   assert.ok(stored.has('telegram-report:v1:latest'));
+});
+
+test('active month follows the production manifest without a Worker code change', async () => {
+  const requested = [];
+  const fetchImpl = async url => {
+    requested.push(url);
+    if (url.endsWith('/data/manifest.json')) return response(novemberManifest);
+    if (url.includes('/data/2026/11-november.json')) return response(novemberData);
+    return response({}, 404);
+  };
+  const loaded = await loadActiveMonth(fetchImpl);
+  assert.equal(loaded.manifest.defaultPeriod, '2026-11');
+  assert.equal(loaded.month.period, '2026-11');
+  assert.ok(requested.some(url => url.includes('/data/2026/11-november.json')));
+});
+
+test('motivational quotes do not repeat until the full pool is exhausted', () => {
+  let rawState = null;
+  const indexes = [];
+  for (let index = 0; index < MOTIVATIONAL_QUOTES.length; index += 1) {
+    const selected = selectMotivationalQuote(rawState, () => 0);
+    indexes.push(selected.index);
+    rawState = JSON.stringify(selected.state);
+  }
+  assert.equal(new Set(indexes).size, MOTIVATIONAL_QUOTES.length);
+  const next = selectMotivationalQuote(rawState, () => 0);
+  assert.notEqual(next.index, indexes.at(-1));
+  assert.match(buildMotivationMessage(next.quote), /LIVE START MOTIVATION/);
+});
+
+test('scheduled start sends one motivational message and stores its delivery state', async () => {
+  const stored = new Map();
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (url, options) => {
+    if (url.endsWith('/data/manifest.json')) return response(novemberManifest);
+    if (url.includes('/data/2026/11-november.json')) return response(novemberData);
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const motivation = buildMonthEvents(novemberData).find(event => event.type === 'motivation');
+  const first = await runScheduled(new Date(motivation.utc), env, fetchImpl, () => 0);
+  const second = await runScheduled(new Date(Date.parse(motivation.utc) + 5 * 60 * 1000), env, fetchImpl, () => 0);
+  assert.equal(first.sent, true);
+  assert.equal(second.reason, 'already-sent');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].text, /LIVE START MOTIVATION/);
+  assert.ok(stored.has(eventKey(motivation)));
+});
+
+test('administrator chat has full commands, private diagnostics and clickable menu buttons', async () => {
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989',
+    REMINDER_STATE: { get: async () => null }
+  };
+  const fetchImpl = async (url, options) => {
+    if (url.endsWith('/data/manifest.json')) return response(manifest);
+    if (url.includes('/data/2026/10-october.json')) return response(reportMonth);
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const sales = await handleTelegramUpdate(
+    { message: { chat: { id: 9989 }, text: '/sales' } }, env, fetchImpl,
+    new Date('2026-10-27T04:00:00Z')
+  );
+  const health = await handleTelegramUpdate(
+    { message: { chat: { id: 9989 }, text: '/health' } }, env, fetchImpl,
+    new Date('2026-10-27T04:00:00Z')
+  );
+  await handleTelegramUpdate({ message: { chat: { id: 9989 }, text: '/menu' } }, env, fetchImpl);
+  const hostAdminAttempt = await handleTelegramUpdate(
+    { message: { chat: { id: 1707 }, text: '/health' } }, env, fetchImpl
+  );
+  assert.equal(sales.role, 'admin');
+  assert.equal(health.command, 'health');
+  assert.equal(hostAdminAttempt.reason, 'admin-command-requires-admin-chat');
+  assert.match(sent[0].text, /SALES & HOURS/);
+  assert.match(sent[1].text, /ADMIN HEALTH/);
+  assert.ok(sent[2].reply_markup.keyboard.flat().includes('/admin'));
+});
+
+test('missing-report warning alerts the administrator once after the grace period', async () => {
+  const stored = new Map();
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (_url, options) => {
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const now = new Date('2026-10-27T09:00:00.000Z');
+  const first = await checkMissingReportWarning(reportMonth, now, env, fetchImpl);
+  const second = await checkMissingReportWarning(reportMonth, now, env, fetchImpl);
+  assert.equal(first.sent, true);
+  assert.equal(second.sent, false);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].chat_id, '9989');
+  assert.match(sent[0].text, /No Telegram sales report is recorded/);
+});
+
+test('new commission milestone sends one deduplicated celebration', async () => {
+  const stored = new Map();
+  const sent = [];
+  const milestoneMonth = {
+    period: '2026-11', approvedPayrollSeconds: 7_200, schedule: [],
+    sessions: [
+      { id: '2026-11-01-s01', date: '2026-11-01', durationSeconds: 3_600, gmvCents: 1_400_000 },
+      { id: '2026-11-02-s01', date: '2026-11-02', durationSeconds: 3_600, gmvCents: 200_000 }
+    ]
+  };
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (_url, options) => {
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const first = await sendMilestoneAlert(milestoneMonth, '2026-11-02', env, fetchImpl);
+  const second = await sendMilestoneAlert(milestoneMonth, '2026-11-02', env, fetchImpl);
+  assert.equal(first.sent, true);
+  assert.equal(second.reason, 'already-announced');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].text, /MILESTONE ACHIEVED/);
+  assert.match(sent[0].text, /Commission unlocked: RM100.00/);
 });
 
 test('publish workflow forwards correction intent to the report endpoint', () => {

@@ -13,6 +13,12 @@ A private-first livestream operations system for sales, GMV, payroll, commission
 - Cloudflare Worker reminders four hours and one hour before each livestream.
 - Automatic Telegram daily reports after a successful sales publish.
 - On-demand Telegram commands for schedules, earnings, targets and analytics.
+- Full command access for both the host and the configured administrator chat.
+- Clickable persistent Telegram command buttons.
+- Automatic active-month discovery from the production manifest.
+- Start-time motivational messages with a non-repeating 40-message cycle.
+- Commission-tier and RM10,000 GMV milestone celebrations.
+- Private missing-report warnings 90 minutes after a scheduled livestream ends.
 - Duplicate-report protection and explicit updated/corrected report labels.
 - Optional private Telegram alerts when reminder or report delivery fails.
 
@@ -53,15 +59,28 @@ The Telegram bot is restricted to the configured host chat. Its English command 
 
 Commands also work without the leading `/`. Earlier Malay commands remain supported as hidden compatibility aliases.
 
+The configured administrator chat receives the same operational commands plus private diagnostics:
+
+| Admin command | Purpose |
+| --- | --- |
+| `/admin` | Administrator menu |
+| `/health` | Production, configuration and storage health |
+| `/next` | Next reminder or start-time motivation event |
+| `/missing` | Check the latest completed schedule for a missing report |
+
 ### Reminder and Reporting Behaviour
 
 - The four-hour reminder includes schedule and GMV milestone progress.
 - The one-hour reminder contains the cleaner schedule-only message.
+- One original motivational message is sent at the scheduled start time. Quotes do not repeat until the full pool is exhausted.
 - Successful sales publishes send a daily report automatically.
+- Crossing a new commission tier or RM10,000 GMV milestone sends a deduplicated celebration.
+- If no report is recorded 90 minutes after the scheduled end, the administrator receives one private warning.
 - Corrections are labelled `CORRECTED DAILY SALES REPORT`.
 - Later non-correction republishes are labelled `UPDATED DAILY SALES REPORT`.
 - The Worker stores a report signature in Cloudflare KV to prevent duplicate delivery, even across different commit SHAs.
 - Salary and estimated earnings are shown only when requested with `/salary`.
+- The Worker reads `data/manifest.json`, so changing the default month during the coordinated month-end rollover activates the new month without another Worker source edit.
 
 ## System Architecture
 
@@ -152,13 +171,13 @@ Production configuration is stored only as Cloudflare bindings or encrypted secr
 
 GitHub Actions uses the encrypted repository secret `REPORT_WEBHOOK_KEY`. In the current deployment it matches the Worker report authorization key. Never commit or paste secret values into source files, issues, pull requests or documentation.
 
-Optional private failure alerts use:
+Private administrator access and failure alerts use:
 
 - `ADMIN_TELEGRAM_CHAT_ID`
 
-When configured, the Worker attempts to notify the administrator if a scheduled reminder or daily report delivery fails.
+When configured, the administrator receives system-failure alerts, missing-report warnings, full public command access and private diagnostic commands.
 
-After deploying a new Worker command list, call the authenticated `/configure-telegram` endpoint once to refresh Telegram's webhook and visible command menu.
+After deploying a new Worker command list, call the authenticated `/configure-telegram` endpoint once to refresh Telegram's webhook, administrator command scope and visible command menus.
 
 ## Deployment
 
@@ -182,8 +201,7 @@ ChatGPT / Codex by OpenAI supports architecture, implementation, payload prepara
 
 ## Next Phase
 
-- Configure private system-failure alerts for the administrator.
-- Add safer operational diagnostics and recovery guidance.
+- Add safer guided recovery actions for administrator alerts.
 - Explore screenshot-to-publish automation while keeping human approval as the final gate.
 
 Built as a personal productivity system. Human approval remains the final gate before production changes.
