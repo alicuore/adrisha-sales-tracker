@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'data/**/*.json'
+      - 'cloudflare/**'
       - 'js/**'
       - 'index.html'
       - 'tests/**'
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'data/**/*.json'
+      - 'cloudflare/**'
       - 'js/**'
       - 'index.html'
       - 'tests/**'
@@ -38,3 +40,7 @@ jobs:
         run: node tests/validate-data.mjs
       - name: Run existing tests
         run: node --test tests/*.test.mjs
+      - name: Validate Cloudflare Worker syntax
+        run: node --check cloudflare/adrisha-live-reminder-worker.mjs
+      - name: Run Cloudflare Worker tests
+        run: node --test cloudflare/adrisha-live-reminder-worker.test.mjs
