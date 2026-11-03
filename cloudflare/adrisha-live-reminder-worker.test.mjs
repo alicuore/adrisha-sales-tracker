@@ -21,6 +21,7 @@ import {
   calculateGmvProgress,
   checkMissingReportWarning,
   eventKey,
+  handleTelegramCallback,
   handleTelegramUpdate,
   loadActiveMonth,
   normalizeCommand,
@@ -370,7 +371,84 @@ test('daily report is idempotent, data-aware and explicitly labels corrections',
   assert.equal(sameData.reason, 'already-sent-data');
   assert.equal(messages.length, 2);
   assert.match(messages[1], /CORRECTED DAILY SALES REPORT/);
+  assert.match(messages[1], /Previous Sales : RM3,816.55/);
+  assert.match(messages[1], /Updated Sales  : RM3,859.07/);
+  assert.match(messages[1], /Difference     : \+RM42.52/);
+  assert.match(messages[1], /Correction           : \+RM42.52/);
   assert.ok(stored.has('telegram-report:v1:latest'));
+});
+
+test('published report includes acknowledgement and admin receives confirmation', async () => {
+  const stored = new Map();
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (url, options) => {
+    if (url.includes('raw.githubusercontent.com')) {
+      if (url.endsWith('/data/manifest.json')) return response(manifest);
+      return response(reportMonth);
+    }
+    const body = JSON.parse(options.body);
+    sent.push({ method: url.split('/').at(-1), ...body });
+    return response({ ok: true, result: { message_id: 42 } });
+  };
+  await sendDailyReport({
+    period: '2026-10', date: '2026-10-27', commitSha: 'd'.repeat(40)
+  }, env, fetchImpl);
+  assert.equal(sent[0].chat_id, '1707');
+  assert.equal(sent[0].reply_markup.inline_keyboard[0][0].text, '\u2705 Acknowledge');
+  assert.equal(sent[1].chat_id, '9989');
+  assert.match(sent[1].text, /SALES REPORT PUBLISHED/);
+
+  const result = await handleTelegramCallback({
+    id: 'callback-1',
+    data: 'ack:2026-10:2026-10-27',
+    message: { chat: { id: 1707 }, message_id: 42 }
+  }, env, fetchImpl, new Date('2026-10-27T10:00:00Z'));
+  assert.equal(result.action, 'acknowledged');
+  assert.ok(sent.some(item => /REPORT ACKNOWLEDGED/.test(item.text ?? '')));
+  assert.ok([...stored.keys()].some(key => key.startsWith('telegram-report-ack:v1:')));
+});
+
+test('missing-report actions support snooze, cancel and check again', async () => {
+  const stored = new Map();
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989',
+    REMINDER_STATE: {
+      get: async key => stored.get(key) ?? null,
+      put: async (key, value) => stored.set(key, value)
+    }
+  };
+  const fetchImpl = async (url, options) => {
+    const body = JSON.parse(options.body);
+    sent.push({ method: url.split('/').at(-1), ...body });
+    return response({ ok: true });
+  };
+  const base = {
+    message: { chat: { id: 9989 }, message_id: 7 }
+  };
+  const snooze = await handleTelegramCallback({
+    ...base, id: 's1', data: 'missing:snooze:2026-10:2026-10-27'
+  }, env, fetchImpl, new Date('2026-10-27T09:00:00Z'));
+  assert.equal(snooze.action, 'snooze');
+  assert.equal(JSON.parse(stored.get('telegram-report-warning:v1:2026-10:2026-10-27')).status, 'snoozed');
+
+  const check = await handleTelegramCallback({
+    ...base, id: 's2', data: 'missing:check:2026-10:2026-10-27'
+  }, env, fetchImpl, new Date('2026-10-27T09:05:00Z'));
+  assert.equal(check.reportExists, false);
+
+  const cancel = await handleTelegramCallback({
+    ...base, id: 's3', data: 'missing:cancel:2026-10:2026-10-27'
+  }, env, fetchImpl, new Date('2026-10-27T09:10:00Z'));
+  assert.equal(cancel.action, 'cancel');
+  assert.equal(JSON.parse(stored.get('telegram-report-warning:v1:2026-10:2026-10-27')).status, 'cancelled');
 });
 
 test('active month follows the production manifest without a Worker code change', async () => {
