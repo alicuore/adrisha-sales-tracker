@@ -348,7 +348,29 @@ function ordinalDate(date) {
   return `${day}${suffix} ${monthYear}`;
 }
 
-function buildDailyReport(month, date, reportType = 'daily') {
+function signedGmv(cents) {
+  const sign = cents >= 0 ? '+' : '-';
+  return `${sign}RM${formatGmv(Math.abs(cents))}`;
+}
+
+function reportComparison(previousMonth, month, date) {
+  if (!previousMonth) return null;
+  const previousDailyGmvCents = previousMonth.sessions
+    .filter(session => session.date === date)
+    .reduce((sum, session) => sum + session.gmvCents, 0);
+  const updatedDailyGmvCents = month.sessions
+    .filter(session => session.date === date)
+    .reduce((sum, session) => sum + session.gmvCents, 0);
+  const previousSummary = summarizeMonth(previousMonth, date);
+  return {
+    previousDailyGmvCents,
+    updatedDailyGmvCents,
+    differenceGmvCents: updatedDailyGmvCents - previousDailyGmvCents,
+    previousMonthlyGmvCents: previousSummary.gmvCents
+  };
+}
+
+function buildDailyReport(month, date, reportType = 'daily', comparison = null) {
   const dailySessions = month.sessions
     .filter(session => session.date === date)
     .sort((a, b) => a.sessionNumber - b.sessionNumber);
@@ -373,11 +395,22 @@ function buildDailyReport(month, date, reportType = 'daily') {
   };
   const title = titles[reportType];
   if (!title) throw new Error(`Unknown daily report type: ${reportType}.`);
+  const monthName = new Intl.DateTimeFormat('en-GB', {
+    month: 'short', timeZone: TIME_ZONE
+  }).format(new Date(`${date}T12:00:00Z`));
+  const correctionBlock = reportType === 'corrected' && comparison
+    ? `GMV Correction\n\nPrevious Sales : RM${formatGmv(comparison.previousDailyGmvCents)}\n`
+      + `Updated Sales  : RM${formatGmv(dailyGmvCents)}\n`
+      + `Difference     : ${signedGmv(comparison.differenceGmvCents)}\n\n`
+      + `Previous Total Sales : RM${formatGmv(comparison.previousMonthlyGmvCents)}\n`
+      + `Correction           : ${signedGmv(comparison.differenceGmvCents)}\n`
+      + `Updated Total Sales  : RM${formatGmv(summary.gmvCents)}`
+    : `Previous Total Sales : RM${formatGmv(previousGmvCents)}\n`
+      + `${Number(date.slice(8, 10))} ${monthName} Sales         : +RM${formatGmv(dailyGmvCents)}\n`
+      + `Updated Total Sales  : RM${formatGmv(summary.gmvCents)}`;
   return `${title}\n\n${ordinalDate(date)}\n\n${sessionBlocks}\n\n`
     + `Total Duration : ${formatDuration(dailySeconds)}\nTotal Sales    : RM${formatGmv(dailyGmvCents)}\n\n`
-    + `Previous Total Sales : RM${formatGmv(previousGmvCents)}\n`
-    + `${Number(date.slice(8, 10))} ${new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: TIME_ZONE }).format(new Date(`${date}T12:00:00Z`))} Sales         : +RM${formatGmv(dailyGmvCents)}\n`
-    + `Updated Total Sales  : RM${formatGmv(summary.gmvCents)}\n\n`
+    + `${correctionBlock}\n\n`
     + `Total Hours          : ${formatDuration(summary.payrollSeconds)}\n`
     + `Hours Remaining      : ${formatDuration(summary.hoursRemainingSeconds)}\n`
     + `Hours Progress       : ${summary.hoursProgress.toFixed(2)}%\n\n`
@@ -483,6 +516,16 @@ function reportWarningKey(period, date) {
   return `telegram-report-warning:v1:${period}:${date}`;
 }
 
+function missingReportKeyboard(period, date) {
+  return {
+    inline_keyboard: [
+      [{ text: '\u23F0 Remind in 1 hour', callback_data: `missing:snooze:${period}:${date}` }],
+      [{ text: '\u274C Session cancelled', callback_data: `missing:cancel:${period}:${date}` }],
+      [{ text: '\uD83D\uDD04 Check again', callback_data: `missing:check:${period}:${date}` }]
+    ]
+  };
+}
+
 async function checkMissingReportWarning(month, now, env, fetchImpl = fetch) {
   if (!env.ADMIN_TELEGRAM_CHAT_ID) return { sent: false, reason: 'admin-not-configured' };
   const nowMs = now.getTime();
@@ -494,18 +537,26 @@ async function checkMissingReportWarning(month, now, env, fetchImpl = fetch) {
     const reportKey = reportStateKey(month.period, entry.date);
     if (await env.REMINDER_STATE.get(reportKey)) continue;
     const key = reportWarningKey(month.period, entry.date);
-    if (await env.REMINDER_STATE.get(key)) continue;
+    const rawWarning = await env.REMINDER_STATE.get(key);
+    let warningState = null;
+    if (rawWarning) {
+      try { warningState = JSON.parse(rawWarning); } catch { warningState = { status: 'warned' }; }
+      if (['cancelled', 'resolved'].includes(warningState?.status)) continue;
+      if (warningState?.status !== 'snoozed') continue;
+      if (Date.parse(warningState.snoozeUntil) > nowMs) continue;
+    }
     const sent = await sendAdminAlert(
       `No Telegram sales report is recorded for ${formatDate(entry.date)} `
       + `90 minutes after the scheduled livestream ended. Please confirm whether the session ran `
       + `and publish or repair the report if needed.`,
       env,
-      fetchImpl
+      fetchImpl,
+      { reply_markup: missingReportKeyboard(month.period, entry.date) }
     );
     if (!sent) return { sent: false, reason: 'admin-delivery-failed', key };
-    await env.REMINDER_STATE.put(key, JSON.stringify({ warnedAt: now.toISOString() }), {
-      expirationTtl: REPORT_STATE_TTL_SECONDS
-    });
+    await env.REMINDER_STATE.put(key, JSON.stringify({
+      status: 'warned', warnedAt: now.toISOString()
+    }), { expirationTtl: REPORT_STATE_TTL_SECONDS });
     return { sent: true, key, date: entry.date };
   }
   return { sent: false, reason: 'no-missing-report' };
@@ -803,7 +854,106 @@ async function latestReportState(env) {
   try { return JSON.parse(value); } catch { return null; }
 }
 
+async function answerCallback(callbackQueryId, text, env, fetchImpl = fetch) {
+  return telegramApi('answerCallbackQuery', {
+    callback_query_id: callbackQueryId,
+    text,
+    show_alert: false
+  }, env, fetchImpl);
+}
+
+async function handleTelegramCallback(callback, env, fetchImpl = fetch, now = new Date()) {
+  const chatId = String(callback?.message?.chat?.id ?? '');
+  const data = callback?.data ?? '';
+  const isHost = chatId === String(env.TELEGRAM_CHAT_ID);
+  const isAdmin = Boolean(env.ADMIN_TELEGRAM_CHAT_ID) && chatId === String(env.ADMIN_TELEGRAM_CHAT_ID);
+  if (!isHost && !isAdmin) return { handled: false, reason: 'unauthorized-chat' };
+  if (data === 'noop') {
+    await answerCallback(callback.id, 'Already acknowledged.', env, fetchImpl);
+    return { handled: true, action: 'noop' };
+  }
+
+  const parts = data.split(':');
+  if (parts[0] === 'ack' && parts.length === 3) {
+    if (!isHost) return { handled: false, reason: 'acknowledgement-requires-host-chat' };
+    const [, period, date] = parts;
+    const rawReport = await env.REMINDER_STATE.get(reportStateKey(period, date));
+    if (!rawReport) {
+      await answerCallback(callback.id, 'This report is no longer available.', env, fetchImpl);
+      return { handled: false, reason: 'report-state-missing' };
+    }
+    const report = JSON.parse(rawReport);
+    const key = `telegram-report-ack:v1:${period}:${date}:${report.commitSha}`;
+    if (await env.REMINDER_STATE.get(key)) {
+      await answerCallback(callback.id, 'Already acknowledged.', env, fetchImpl);
+      return { handled: true, action: 'already-acknowledged' };
+    }
+    const acknowledgedAt = now.toISOString();
+    await env.REMINDER_STATE.put(key, JSON.stringify({ acknowledgedAt }), {
+      expirationTtl: REPORT_STATE_TTL_SECONDS
+    });
+    await answerCallback(callback.id, 'Thank you! Ali has been notified.', env, fetchImpl);
+    await telegramApi('editMessageReplyMarkup', {
+      chat_id: callback.message.chat.id,
+      message_id: callback.message.message_id,
+      reply_markup: { inline_keyboard: [[{ text: '\u2705 Acknowledged', callback_data: 'noop' }]] }
+    }, env, fetchImpl);
+    if (env.ADMIN_TELEGRAM_CHAT_ID) {
+      await sendTelegram(
+        `\u2705 REPORT ACKNOWLEDGED\n\nAdrisha acknowledged the published sales report for ${formatDate(date)}.`,
+        env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID
+      );
+    }
+    return { handled: true, action: 'acknowledged', period, date };
+  }
+
+  if (parts[0] === 'missing' && parts.length === 4) {
+    if (!isAdmin) return { handled: false, reason: 'missing-action-requires-admin-chat' };
+    const [, action, period, date] = parts;
+    const key = reportWarningKey(period, date);
+    if (action === 'snooze') {
+      const snoozeUntil = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+      await env.REMINDER_STATE.put(key, JSON.stringify({
+        status: 'snoozed', snoozedAt: now.toISOString(), snoozeUntil
+      }), { expirationTtl: REPORT_STATE_TTL_SECONDS });
+      await answerCallback(callback.id, 'I will remind you again in 1 hour.', env, fetchImpl);
+      return { handled: true, action, period, date, snoozeUntil };
+    }
+    if (action === 'cancel') {
+      await env.REMINDER_STATE.put(key, JSON.stringify({
+        status: 'cancelled', cancelledAt: now.toISOString()
+      }), { expirationTtl: REPORT_STATE_TTL_SECONDS });
+      await answerCallback(callback.id, 'Session marked as cancelled.', env, fetchImpl);
+      await sendTelegram(
+        `\u274C SESSION CANCELLED\n\n${formatDate(date)} has been marked as cancelled. No further missing-report alert will be sent for this date.`,
+        env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID
+      );
+      return { handled: true, action, period, date };
+    }
+    if (action === 'check') {
+      const reportExists = Boolean(await env.REMINDER_STATE.get(reportStateKey(period, date)));
+      await answerCallback(
+        callback.id,
+        reportExists ? 'Published report found.' : 'The report is still missing.',
+        env,
+        fetchImpl
+      );
+      await sendTelegram(
+        reportExists
+          ? `\u2705 REPORT CHECK\n\nA published Telegram report is recorded for ${formatDate(date)}.`
+          : `\uD83D\uDCC4 REPORT CHECK\n\nThe sales report for ${formatDate(date)} is still missing.`,
+        env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID
+      );
+      return { handled: true, action, period, date, reportExists };
+    }
+  }
+  return { handled: false, reason: 'unknown-callback' };
+}
+
 async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Date()) {
+  if (update?.callback_query) {
+    return handleTelegramCallback(update.callback_query, env, fetchImpl, now);
+  }
   const message = update?.message;
   if (!message?.chat?.id || typeof message.text !== 'string') {
     return { handled: false, reason: 'no-text-message' };
@@ -931,6 +1081,24 @@ async function sendMilestoneAlert(month, date, env, fetchImpl = fetch) {
   return { sent: true, keys: unsentKeys };
 }
 
+function buildPublishSuccessMessage(month, date, reportType, comparison, missingAlertResolved) {
+  const dailySessions = month.sessions.filter(session => session.date === date);
+  const dailyGmvCents = dailySessions.reduce((sum, session) => sum + session.gmvCents, 0);
+  const dailySeconds = dailySessions.reduce((sum, session) => sum + session.durationSeconds, 0);
+  const summary = summarizeMonth(month, date);
+  const correction = reportType === 'corrected' && comparison
+    ? `\nPrevious GMV: RM${formatGmv(comparison.previousDailyGmvCents)}`
+      + `\nAdjustment: ${signedGmv(comparison.differenceGmvCents)}`
+    : '';
+  return `\u2705 SALES REPORT PUBLISHED\n\nDate: ${formatDate(date)}`
+    + `\nReport type: ${reportType === 'daily' ? 'New' : reportType === 'corrected' ? 'Correction' : 'Updated'}`
+    + `${correction}\nGMV: RM${formatGmv(dailyGmvCents)}`
+    + `\nDuration: ${formatDuration(dailySeconds)}`
+    + `\nMonthly GMV: RM${formatGmv(summary.gmvCents)}`
+    + `\nNext tier remaining: RM${formatGmv(summary.commission.remainingCents)}`
+    + `\nPrevious missing-report alert: ${missingAlertResolved ? 'Resolved' : 'None'}`;
+}
+
 async function sendDailyReport({ period, date, commitSha, corrected = false }, env, fetchImpl = fetch) {
   if (!env.REMINDER_STATE) throw new Error('REMINDER_STATE KV binding is not configured.');
   if (!/^\d{4}-\d{2}$/.test(period) || !date.startsWith(`${period}-`) ||
@@ -948,8 +1116,27 @@ async function sendDailyReport({ period, date, commitSha, corrected = false }, e
   const signature = reportSignature(month, date);
   if (previousState?.signature === signature) return { sent: false, reason: 'already-sent-data', key };
   const reportType = corrected ? 'corrected' : previousState ? 'updated' : 'daily';
-  const message = buildDailyReport(month, date, reportType);
-  await sendTelegram(message, env, fetchImpl);
+  let comparison = null;
+  if (previousState?.commitSha) {
+    try {
+      comparison = reportComparison(
+        await loadMonth(period, fetchImpl, previousState.commitSha),
+        month,
+        date
+      );
+    } catch (error) {
+      console.error(JSON.stringify({ type: 'report-comparison-error', message: error.message }));
+    }
+  }
+  const message = buildDailyReport(month, date, reportType, comparison);
+  await sendTelegram(message, env, fetchImpl, env.TELEGRAM_CHAT_ID, {
+    reply_markup: {
+      inline_keyboard: [[{
+        text: '\u2705 Acknowledge',
+        callback_data: `ack:${period}:${date}`
+      }]]
+    }
+  });
   const state = { period, date, commitSha, signature, reportType, sentAt: new Date().toISOString() };
   await env.REMINDER_STATE.put(key, JSON.stringify(state), {
     expirationTtl: REPORT_STATE_TTL_SECONDS
@@ -957,6 +1144,33 @@ async function sendDailyReport({ period, date, commitSha, corrected = false }, e
   await env.REMINDER_STATE.put(LATEST_REPORT_STATE_KEY, JSON.stringify(state), {
     expirationTtl: REPORT_STATE_TTL_SECONDS
   });
+
+  const warningKey = reportWarningKey(period, date);
+  const rawWarning = await env.REMINDER_STATE.get(warningKey);
+  let missingAlertResolved = false;
+  if (rawWarning) {
+    let warningState = {};
+    try { warningState = JSON.parse(rawWarning); } catch { /* replace invalid state */ }
+    missingAlertResolved = warningState.status !== 'cancelled';
+    await env.REMINDER_STATE.put(warningKey, JSON.stringify({
+      ...warningState,
+      status: 'resolved',
+      resolvedAt: new Date().toISOString(),
+      commitSha
+    }), { expirationTtl: REPORT_STATE_TTL_SECONDS });
+  }
+
+  if (env.ADMIN_TELEGRAM_CHAT_ID) {
+    try {
+      await sendTelegram(
+        buildPublishSuccessMessage(month, date, reportType, comparison, missingAlertResolved),
+        env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID
+      );
+    } catch (error) {
+      console.error(JSON.stringify({ type: 'publish-confirmation-error', message: error.message }));
+    }
+  }
+
   let milestone;
   try {
     milestone = await sendMilestoneAlert(month, date, env, fetchImpl);
@@ -967,10 +1181,13 @@ async function sendDailyReport({ period, date, commitSha, corrected = false }, e
   return { sent: true, updated: Boolean(previousState), corrected, reportType, key, milestone };
 }
 
-async function sendAdminAlert(message, env, fetchImpl = fetch) {
+async function sendAdminAlert(message, env, fetchImpl = fetch, extra = {}) {
   if (!env.ADMIN_TELEGRAM_CHAT_ID) return false;
   try {
-    await sendTelegram(`\u26A0\uFE0F ADRISHA BOT ALERT\n\n${message}`, env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID);
+    await sendTelegram(
+      `\u26A0\uFE0F ADRISHA BOT ALERT\n\n${message}`,
+      env, fetchImpl, env.ADMIN_TELEGRAM_CHAT_ID, extra
+    );
     return true;
   } catch (error) {
     console.error(JSON.stringify({ type: 'admin-alert-error', message: error.message }));
@@ -984,7 +1201,7 @@ async function configureTelegram(origin, env, fetchImpl = fetch) {
   const webhook = await telegramApi('setWebhook', {
     url: `${origin}/telegram-webhook`,
     secret_token: secret,
-    allowed_updates: ['message'],
+    allowed_updates: ['message', 'callback_query'],
     drop_pending_updates: true
   }, env, fetchImpl);
   const commands = await telegramApi('setMyCommands', { commands: PUBLIC_COMMANDS }, env, fetchImpl);
@@ -1103,6 +1320,7 @@ export {
   buildReminderMessage,
   buildMotivationMessage,
   buildDailyReport,
+  buildPublishSuccessMessage,
   buildAdminHealthReply,
   buildMissingReportReply,
   buildNextAutomationReply,
@@ -1120,12 +1338,14 @@ export {
   eventKey,
   extractShift,
   formatDuration,
+  handleTelegramCallback,
   handleTelegramUpdate,
   loadActiveMonth,
   loadManifest,
   loadMonth,
   localDate,
   normalizeCommand,
+  reportComparison,
   reportStateKey,
   reportSignature,
   resolveDueEvent,
