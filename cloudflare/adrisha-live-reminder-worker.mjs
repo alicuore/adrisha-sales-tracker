@@ -712,6 +712,32 @@ function buildMonthReply(month) {
     + `GMV Remaining   : RM${formatGmv(s.commission.remainingCents)}`;
 }
 
+function buildSessionListReply(month) {
+  if (month.sessions.length === 0) {
+    return `\uD83D\uDCCB SESSION LIST\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
+  }
+  const sessions = [...month.sessions].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.sessionNumber - b.sessionNumber
+  );
+  const salesValues = sessions.map(session => `RM${formatGmv(session.gmvCents)}`);
+  const salesWidth = Math.max('Total Sales'.length, ...salesValues.map(value => value.length));
+  const hoursWidth = Math.max(
+    'Total Hours'.length,
+    ...sessions.map(session => formatDuration(session.durationSeconds).length)
+  );
+  const header = `${'Date'.padEnd(5)} | ${'Session'.padEnd(7)} | ${'Total Sales'.padStart(salesWidth)} | ${'Total Hours'.padStart(hoursWidth)}`;
+  const separator = `${'-'.repeat(5)}-+-${'-'.repeat(7)}-+-${'-'.repeat(salesWidth)}-+-${'-'.repeat(hoursWidth)}`;
+  const rows = sessions.map((session, index) => {
+    const date = `${session.date.slice(8, 10)}/${session.date.slice(5, 7)}`;
+    return `${date} | ${String(session.sessionNumber).padEnd(7)} | ${salesValues[index].padStart(salesWidth)} | ${formatDuration(session.durationSeconds).padStart(hoursWidth)}`;
+  });
+  const summary = summarizeMonth(month);
+  const total = `${'TOTAL'.padEnd(5)} | ${String(sessions.length).padEnd(7)} | ${`RM${formatGmv(summary.gmvCents)}`.padStart(salesWidth)} | ${formatDuration(summary.payrollSeconds).padStart(hoursWidth)}`;
+  return `\uD83D\uDCCB SESSION LIST\n\n${formatPeriod(month.period)}\n\n<pre>`
+    + [header, separator, ...rows, separator, total].join('\n')
+    + `</pre>\n\nOne row represents one published session.`;
+}
+
 function buildPerformanceReply(month) {
   if (month.sessions.length === 0) return `\uD83D\uDCC8 PERFORMANCE\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
   const daily = new Map();
@@ -758,6 +784,7 @@ const PUBLIC_COMMANDS = Object.freeze([
   { command: 'target', description: 'GMV required for the next tier' },
   { command: 'week', description: 'Current weekly summary' },
   { command: 'month', description: 'Current monthly summary' },
+  { command: 'sessions', description: 'All published sessions this month' },
   { command: 'performance', description: 'Sales performance insights' },
   { command: 'status', description: 'Bot and data health' },
   { command: 'menu', description: 'Show all commands' }
@@ -780,6 +807,7 @@ const MENU_MESSAGE = `\uD83E\uDD16 ADRISHA BOT MENU
 /target \u2013 GMV required for the next tier
 /week \u2013 current weekly summary
 /month \u2013 current monthly summary
+/sessions \u2013 all published sessions this month
 /performance \u2013 sales performance insights
 /status \u2013 bot and data health
 /menu \u2013 show this command list
@@ -798,8 +826,8 @@ function menuKeyboard(isAdmin = false) {
     ['/schedule', '/tomorrow'],
     ['/report', '/target'],
     ['/week', '/month'],
-    ['/performance', '/status'],
-    ['/menu']
+    ['/sessions', '/performance'],
+    ['/status', '/menu']
   ];
   if (isAdmin) keyboard.push(['/admin', '/health'], ['/next', '/missing']);
   return { keyboard, resize_keyboard: true, is_persistent: true };
@@ -998,6 +1026,7 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
   }
 
   let reply;
+  let replyOptions = {};
   if (command === 'salary') reply = buildSalaryReply(month);
   else if (command === 'sales') reply = buildSalesReply(month);
   else if (command === 'schedule' || command === 'tomorrow') {
@@ -1014,7 +1043,10 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
     }
     reply = buildWeekReply(weekMonths.length > 0 ? weekMonths : [activeMonth], today);
   } else if (command === 'month') reply = buildMonthReply(month);
-  else if (command === 'performance') reply = buildPerformanceReply(month);
+  else if (command === 'sessions') {
+    reply = buildSessionListReply(month);
+    replyOptions = { parse_mode: 'HTML' };
+  } else if (command === 'performance') reply = buildPerformanceReply(month);
   else if (command === 'status') reply = buildStatusReply(month, now, reportState, env);
   else if (command === 'health') reply = buildAdminHealthReply(manifest, activeMonth, now, reportState, env);
   else if (command === 'next') reply = buildNextAutomationReply(activeMonth, now);
@@ -1025,7 +1057,7 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
       ? buildDailyReport(month, reportDate, reportState?.reportType ?? 'daily')
       : `\uD83D\uDCC4 LATEST DAILY SALES REPORT\n\nNo daily sales report is available yet.`;
   }
-  await sendTelegram(reply, env, fetchImpl, message.chat.id);
+  await sendTelegram(reply, env, fetchImpl, message.chat.id, replyOptions);
   return { handled: true, command, role: isAdmin ? 'admin' : 'host' };
 }
 
@@ -1330,6 +1362,7 @@ export {
   buildTargetReply,
   buildWeekReply,
   buildMonthReply,
+  buildSessionListReply,
   buildPerformanceReply,
   buildStatusReply,
   calculateGmvProgress,
