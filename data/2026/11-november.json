@@ -32,7 +32,13 @@
       "notes": "Session 1 — TikTok Studio 1 (Main)"
     }
   ],
-  "attendance": [],
+  "attendance": [
+    {
+      "date": "2026-11-02",
+      "status": "absent",
+      "notes": "Scheduled livestream cancelled due to the massive flash flooding in Shah Alam."
+    }
+  ],
   "schedule": [
     {
       "date": "2026-11-01",
