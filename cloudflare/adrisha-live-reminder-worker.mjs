@@ -131,7 +131,10 @@ function buildMonthEvents(month) {
   if (!month?.period || !Array.isArray(month.schedule)) {
     throw new Error('Monthly schedule is missing or invalid.');
   }
-  return month.schedule.flatMap(entry => {
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
+  return month.schedule.filter(entry => !nonWorkingDates.has(entry.date)).flatMap(entry => {
     if (!entry?.date || !Array.isArray(entry.slots)) {
       throw new Error('Monthly schedule entry is missing or invalid.');
     }
@@ -286,6 +289,12 @@ function formatGmv(cents) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(cents / 100);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;'
+  })[character]);
 }
 
 function formatDuration(totalSeconds) {
@@ -529,7 +538,11 @@ function missingReportKeyboard(period, date) {
 async function checkMissingReportWarning(month, now, env, fetchImpl = fetch) {
   if (!env.ADMIN_TELEGRAM_CHAT_ID) return { sent: false, reason: 'admin-not-configured' };
   const nowMs = now.getTime();
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
   const candidates = month.schedule
+    .filter(entry => !nonWorkingDates.has(entry.date))
     .map(entry => ({ entry, warningAt: scheduleEndTimestamp(entry) + MISSING_REPORT_GRACE_MS }))
     .filter(({ warningAt }) => nowMs >= warningAt && nowMs - warningAt <= MISSING_REPORT_LOOKBACK_MS)
     .sort((a, b) => b.warningAt - a.warningAt);
@@ -621,6 +634,12 @@ function normalizeCommand(text) {
 }
 
 function buildScheduleReply(month, date, label = 'Today') {
+  const attendance = (month.attendance ?? []).find(item => item.date === date && item.status !== 'working');
+  if (attendance) {
+    const status = { leave: 'Annual Leave', off: 'Off / Public Holiday', absent: 'Cancelled / Absent' }[attendance.status];
+    return `\uD83D\uDCC5 ${label.toUpperCase()}\u2019S SCHEDULE\n\n${formatDate(date)}\n\n`
+      + `No livestream scheduled.\nStatus: ${status}\nRemark: ${attendance.notes}`;
+  }
   const item = month.schedule.find(entry => entry.date === date);
   if (!item) return `${label}: ${formatDate(date)}\n\nNo livestream scheduled ${label.toLowerCase()}.`;
   const slots = item.slots.map(slot => `${formatTime(slot.startTime)} \u2013 ${formatTime(slot.endTime)}`).join('\n');
@@ -661,7 +680,12 @@ function formatPeriod(period) {
 function buildTargetReply(month, today = localDate()) {
   const s = summarizeMonth(month);
   const completedDates = new Set(month.sessions.map(session => session.date));
-  const remainingShifts = month.schedule.filter(entry => entry.date >= today && !completedDates.has(entry.date));
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
+  const remainingShifts = month.schedule.filter(entry =>
+    entry.date >= today && !completedDates.has(entry.date) && !nonWorkingDates.has(entry.date)
+  );
   const count = remainingShifts.length;
   const requiredPerShiftCents = count > 0 ? Math.ceil(s.commission.remainingCents / count) : null;
   return `\uD83C\uDFAF TARGET PROGRESS\n\n`
@@ -733,9 +757,19 @@ function buildSessionListReply(month) {
   });
   const summary = summarizeMonth(month);
   const total = `${'TOTAL'.padEnd(5)} | ${String(sessions.length).padEnd(7)} | ${`RM${formatGmv(summary.gmvCents)}`.padStart(salesWidth)} | ${formatDuration(summary.payrollSeconds).padStart(hoursWidth)}`;
+  const sessionDates = new Set(sessions.map(session => session.date));
+  const remarks = (month.attendance ?? [])
+    .filter(item => item.status !== 'working' && !sessionDates.has(item.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const statusLabels = { leave: 'Annual Leave', off: 'Off / Public Holiday', absent: 'Cancelled / Absent' };
+  const remarksBlock = remarks.length === 0 ? '' : '\n\nNO SESSION / REMARKS\n\n'
+    + remarks.map(item => {
+      const date = `${item.date.slice(8, 10)}/${item.date.slice(5, 7)}`;
+      return `${date} \u2014 ${statusLabels[item.status]}\n${escapeHtml(item.notes)}`;
+    }).join('\n\n');
   return `\uD83D\uDCCB SESSION LIST\n\n${formatPeriod(month.period)}\n\n<pre>`
     + [header, separator, ...rows, separator, total].join('\n')
-    + `</pre>\n\nOne row represents one published session.`;
+    + `</pre>${remarksBlock}\n\nOne table row represents one published session.`;
 }
 
 function buildPerformanceReply(month) {
@@ -858,7 +892,11 @@ function buildNextAutomationReply(month, now) {
 }
 
 function buildMissingReportReply(month, now, latestReport) {
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
   const completed = month.schedule
+    .filter(entry => !nonWorkingDates.has(entry.date))
     .filter(entry => scheduleEndTimestamp(entry) + MISSING_REPORT_GRACE_MS <= now.getTime())
     .sort((a, b) => b.date.localeCompare(a.date));
   if (completed.length === 0) {
