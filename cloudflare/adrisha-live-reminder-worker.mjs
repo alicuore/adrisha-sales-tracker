@@ -131,7 +131,10 @@ function buildMonthEvents(month) {
   if (!month?.period || !Array.isArray(month.schedule)) {
     throw new Error('Monthly schedule is missing or invalid.');
   }
-  return month.schedule.flatMap(entry => {
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
+  return month.schedule.filter(entry => !nonWorkingDates.has(entry.date)).flatMap(entry => {
     if (!entry?.date || !Array.isArray(entry.slots)) {
       throw new Error('Monthly schedule entry is missing or invalid.');
     }
@@ -286,6 +289,12 @@ function formatGmv(cents) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(cents / 100);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;'
+  })[character]);
 }
 
 function formatDuration(totalSeconds) {
@@ -529,7 +538,11 @@ function missingReportKeyboard(period, date) {
 async function checkMissingReportWarning(month, now, env, fetchImpl = fetch) {
   if (!env.ADMIN_TELEGRAM_CHAT_ID) return { sent: false, reason: 'admin-not-configured' };
   const nowMs = now.getTime();
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
   const candidates = month.schedule
+    .filter(entry => !nonWorkingDates.has(entry.date))
     .map(entry => ({ entry, warningAt: scheduleEndTimestamp(entry) + MISSING_REPORT_GRACE_MS }))
     .filter(({ warningAt }) => nowMs >= warningAt && nowMs - warningAt <= MISSING_REPORT_LOOKBACK_MS)
     .sort((a, b) => b.warningAt - a.warningAt);
@@ -621,6 +634,12 @@ function normalizeCommand(text) {
 }
 
 function buildScheduleReply(month, date, label = 'Today') {
+  const attendance = (month.attendance ?? []).find(item => item.date === date && item.status !== 'working');
+  if (attendance) {
+    const status = { leave: 'Annual Leave', off: 'Off / Public Holiday', absent: 'Cancelled / Absent' }[attendance.status];
+    return `\uD83D\uDCC5 ${label.toUpperCase()}\u2019S SCHEDULE\n\n${formatDate(date)}\n\n`
+      + `No livestream scheduled.\nStatus: ${status}\nRemark: ${attendance.notes}`;
+  }
   const item = month.schedule.find(entry => entry.date === date);
   if (!item) return `${label}: ${formatDate(date)}\n\nNo livestream scheduled ${label.toLowerCase()}.`;
   const slots = item.slots.map(slot => `${formatTime(slot.startTime)} \u2013 ${formatTime(slot.endTime)}`).join('\n');
@@ -661,7 +680,12 @@ function formatPeriod(period) {
 function buildTargetReply(month, today = localDate()) {
   const s = summarizeMonth(month);
   const completedDates = new Set(month.sessions.map(session => session.date));
-  const remainingShifts = month.schedule.filter(entry => entry.date >= today && !completedDates.has(entry.date));
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
+  const remainingShifts = month.schedule.filter(entry =>
+    entry.date >= today && !completedDates.has(entry.date) && !nonWorkingDates.has(entry.date)
+  );
   const count = remainingShifts.length;
   const requiredPerShiftCents = count > 0 ? Math.ceil(s.commission.remainingCents / count) : null;
   return `\uD83C\uDFAF TARGET PROGRESS\n\n`
@@ -712,6 +736,42 @@ function buildMonthReply(month) {
     + `GMV Remaining   : RM${formatGmv(s.commission.remainingCents)}`;
 }
 
+function buildSessionListReply(month) {
+  if (month.sessions.length === 0) {
+    return `\uD83D\uDCCB SESSION LIST\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
+  }
+  const sessions = [...month.sessions].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.sessionNumber - b.sessionNumber
+  );
+  const salesValues = sessions.map(session => `RM${formatGmv(session.gmvCents)}`);
+  const salesWidth = Math.max('Total Sales'.length, ...salesValues.map(value => value.length));
+  const hoursWidth = Math.max(
+    'Total Hours'.length,
+    ...sessions.map(session => formatDuration(session.durationSeconds).length)
+  );
+  const header = `${'Date'.padEnd(5)} | ${'Session'.padEnd(7)} | ${'Total Sales'.padStart(salesWidth)} | ${'Total Hours'.padStart(hoursWidth)}`;
+  const separator = `${'-'.repeat(5)}-+-${'-'.repeat(7)}-+-${'-'.repeat(salesWidth)}-+-${'-'.repeat(hoursWidth)}`;
+  const rows = sessions.map((session, index) => {
+    const date = `${session.date.slice(8, 10)}/${session.date.slice(5, 7)}`;
+    return `${date} | ${String(session.sessionNumber).padEnd(7)} | ${salesValues[index].padStart(salesWidth)} | ${formatDuration(session.durationSeconds).padStart(hoursWidth)}`;
+  });
+  const summary = summarizeMonth(month);
+  const total = `${'TOTAL'.padEnd(5)} | ${String(sessions.length).padEnd(7)} | ${`RM${formatGmv(summary.gmvCents)}`.padStart(salesWidth)} | ${formatDuration(summary.payrollSeconds).padStart(hoursWidth)}`;
+  const sessionDates = new Set(sessions.map(session => session.date));
+  const remarks = (month.attendance ?? [])
+    .filter(item => item.status !== 'working' && !sessionDates.has(item.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const statusLabels = { leave: 'Annual Leave', off: 'Off / Public Holiday', absent: 'Cancelled / Absent' };
+  const remarksBlock = remarks.length === 0 ? '' : '\n\nNO SESSION / REMARKS\n\n'
+    + remarks.map(item => {
+      const date = `${item.date.slice(8, 10)}/${item.date.slice(5, 7)}`;
+      return `${date} \u2014 ${statusLabels[item.status]}\n${escapeHtml(item.notes)}`;
+    }).join('\n\n');
+  return `\uD83D\uDCCB SESSION LIST\n\n${formatPeriod(month.period)}\n\n<pre>`
+    + [header, separator, ...rows, separator, total].join('\n')
+    + `</pre>${remarksBlock}\n\nOne table row represents one published session.`;
+}
+
 function buildPerformanceReply(month) {
   if (month.sessions.length === 0) return `\uD83D\uDCC8 PERFORMANCE\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
   const daily = new Map();
@@ -758,6 +818,7 @@ const PUBLIC_COMMANDS = Object.freeze([
   { command: 'target', description: 'GMV required for the next tier' },
   { command: 'week', description: 'Current weekly summary' },
   { command: 'month', description: 'Current monthly summary' },
+  { command: 'sessions', description: 'All published sessions this month' },
   { command: 'performance', description: 'Sales performance insights' },
   { command: 'status', description: 'Bot and data health' },
   { command: 'menu', description: 'Show all commands' }
@@ -780,6 +841,7 @@ const MENU_MESSAGE = `\uD83E\uDD16 ADRISHA BOT MENU
 /target \u2013 GMV required for the next tier
 /week \u2013 current weekly summary
 /month \u2013 current monthly summary
+/sessions \u2013 all published sessions this month
 /performance \u2013 sales performance insights
 /status \u2013 bot and data health
 /menu \u2013 show this command list
@@ -798,8 +860,8 @@ function menuKeyboard(isAdmin = false) {
     ['/schedule', '/tomorrow'],
     ['/report', '/target'],
     ['/week', '/month'],
-    ['/performance', '/status'],
-    ['/menu']
+    ['/sessions', '/performance'],
+    ['/status', '/menu']
   ];
   if (isAdmin) keyboard.push(['/admin', '/health'], ['/next', '/missing']);
   return { keyboard, resize_keyboard: true, is_persistent: true };
@@ -830,7 +892,11 @@ function buildNextAutomationReply(month, now) {
 }
 
 function buildMissingReportReply(month, now, latestReport) {
+  const nonWorkingDates = new Set((month.attendance ?? [])
+    .filter(item => item.status !== 'working')
+    .map(item => item.date));
   const completed = month.schedule
+    .filter(entry => !nonWorkingDates.has(entry.date))
     .filter(entry => scheduleEndTimestamp(entry) + MISSING_REPORT_GRACE_MS <= now.getTime())
     .sort((a, b) => b.date.localeCompare(a.date));
   if (completed.length === 0) {
@@ -998,6 +1064,7 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
   }
 
   let reply;
+  let replyOptions = {};
   if (command === 'salary') reply = buildSalaryReply(month);
   else if (command === 'sales') reply = buildSalesReply(month);
   else if (command === 'schedule' || command === 'tomorrow') {
@@ -1014,7 +1081,10 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
     }
     reply = buildWeekReply(weekMonths.length > 0 ? weekMonths : [activeMonth], today);
   } else if (command === 'month') reply = buildMonthReply(month);
-  else if (command === 'performance') reply = buildPerformanceReply(month);
+  else if (command === 'sessions') {
+    reply = buildSessionListReply(month);
+    replyOptions = { parse_mode: 'HTML' };
+  } else if (command === 'performance') reply = buildPerformanceReply(month);
   else if (command === 'status') reply = buildStatusReply(month, now, reportState, env);
   else if (command === 'health') reply = buildAdminHealthReply(manifest, activeMonth, now, reportState, env);
   else if (command === 'next') reply = buildNextAutomationReply(activeMonth, now);
@@ -1025,7 +1095,7 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
       ? buildDailyReport(month, reportDate, reportState?.reportType ?? 'daily')
       : `\uD83D\uDCC4 LATEST DAILY SALES REPORT\n\nNo daily sales report is available yet.`;
   }
-  await sendTelegram(reply, env, fetchImpl, message.chat.id);
+  await sendTelegram(reply, env, fetchImpl, message.chat.id, replyOptions);
   return { handled: true, command, role: isAdmin ? 'admin' : 'host' };
 }
 
@@ -1330,6 +1400,7 @@ export {
   buildTargetReply,
   buildWeekReply,
   buildMonthReply,
+  buildSessionListReply,
   buildPerformanceReply,
   buildStatusReply,
   calculateGmvProgress,
