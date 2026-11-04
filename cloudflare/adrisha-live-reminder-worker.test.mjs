@@ -89,13 +89,14 @@ test('all eight events resolve for the full 59-minute retry window', () => {
   }
 });
 
-test('all 30 November shifts produce exact four-hour and one-hour events', () => {
+test('all 30 November shifts produce events except recorded non-working dates', () => {
   const events = buildReminderEvents(NOVEMBER_SHIFTS);
   const monthEvents = buildMonthEvents(novemberData);
   assert.equal(NOVEMBER_SHIFTS.length, 30);
   assert.equal(events.length, 60);
-  assert.equal(monthEvents.length, 90);
-  assert.equal(monthEvents.filter(event => event.type === 'motivation').length, 30);
+  assert.equal(monthEvents.length, 87);
+  assert.equal(monthEvents.filter(event => event.type === 'motivation').length, 29);
+  assert.equal(monthEvents.some(event => event.date === '2026-11-02'), false);
   assert.equal(REMINDER_EVENTS.length, 68);
   assert.deepEqual(events[0], {
     utc: '2026-11-01T08:00:00.000Z',
@@ -177,6 +178,8 @@ test('salary reply is available only on demand', () => {
 
 test('schedule replies use English for days without a livestream', () => {
   assert.match(buildScheduleReply(reportMonth, '2026-10-28'), /No livestream scheduled today\./);
+  assert.match(buildScheduleReply(novemberData, '2026-11-02'), /Cancelled \/ Absent/);
+  assert.match(buildScheduleReply(novemberData, '2026-11-02'), /massive flash flooding in Shah Alam/);
 });
 
 test('plain and slash bot keywords normalize to the same command', () => {
@@ -215,12 +218,15 @@ test('target, week, month and performance insights use tracker data', () => {
 });
 
 test('session list shows one row per session and monthly totals', () => {
-  const listing = buildSessionListReply(reportMonth);
+  const listing = buildSessionListReply(novemberData);
   assert.match(listing, /SESSION LIST/);
   assert.match(listing, /Date\s+\| Session\s+\|\s+Total Sales \| Total Hours/);
-  assert.match(listing, /27\/10 \| 1\s+\|\s+RM2,859\.07 \|\s+03:30:00/);
-  assert.match(listing, /27\/10 \| 2\s+\|\s+RM957\.48 \|\s+00:36:00/);
-  assert.match(listing, /TOTAL \| 3\s+\| RM105,058\.07 \|\s+98:23:00/);
+  assert.match(listing, /01\/11 \| 1\s+\|\s+RM2,036\.78 \|\s+03:00:00/);
+  assert.match(listing, /03\/11 \| 1\s+\|\s+RM3,682\.50 \|\s+04:30:00/);
+  assert.match(listing, /TOTAL \| 2\s+\|\s+RM5,719\.28 \|\s+07:30:00/);
+  assert.match(listing, /NO SESSION \/ REMARKS/);
+  assert.match(listing, /02\/11 \u2014 Cancelled \/ Absent/);
+  assert.match(listing, /massive flash flooding in Shah Alam/);
   assert.ok(listing.length < 4096);
 });
 
@@ -574,6 +580,26 @@ test('missing-report warning alerts the administrator once after the grace perio
   assert.equal(sent.length, 1);
   assert.equal(sent[0].chat_id, '9989');
   assert.match(sent[0].text, /No Telegram sales report is recorded/);
+});
+
+test('non-working attendance suppresses missing-report warnings', async () => {
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989',
+    REMINDER_STATE: { get: async () => null, put: async () => {} }
+  };
+  const fetchImpl = async (_url, options) => {
+    sent.push(JSON.parse(options.body));
+    return response({ ok: true });
+  };
+  const result = await checkMissingReportWarning(
+    novemberData,
+    new Date('2026-11-03T17:00:00.000Z'),
+    env,
+    fetchImpl
+  );
+  assert.equal(result.sent, false);
+  assert.equal(sent.length, 0);
 });
 
 test('new commission milestone sends one deduplicated celebration', async () => {
