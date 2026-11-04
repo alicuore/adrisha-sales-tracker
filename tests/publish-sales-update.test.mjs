@@ -75,8 +75,14 @@ test('timing fields must be valid', async () => {
   }
 });
 
+const nonWorkingDates = new Set(sourceMonth.attendance
+  .filter(item => item.status !== 'working')
+  .map(item => item.date));
+const additionDate = sourceMonth.schedule.find(entry =>
+  !sourceMonth.sessions.some(item => item.date === entry.date) && !nonWorkingDates.has(entry.date)
+)?.date ?? descriptor.period + '-28';
 const addedSession = {
-  ...session, id: descriptor.period + '-02-s99', date: descriptor.period + '-02',
+  ...session, id: additionDate + '-s99', date: additionDate,
   sessionNumber: 99, legacyId: 'synthetic-addition', gmvCents: 250
 };
 const addition = { operation: 'add_session', session: addedSession };
