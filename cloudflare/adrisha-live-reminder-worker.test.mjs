@@ -15,6 +15,7 @@ import {
   buildTargetReply,
   buildWeekReply,
   buildMonthReply,
+  buildSessionListReply,
   buildPerformanceReply,
   buildStatusReply,
   buildScheduleReply,
@@ -213,6 +214,16 @@ test('target, week, month and performance insights use tracker data', () => {
   assert.match(performance, /Recorded Sessions    : 3/);
 });
 
+test('session list shows one row per session and monthly totals', () => {
+  const listing = buildSessionListReply(reportMonth);
+  assert.match(listing, /SESSION LIST/);
+  assert.match(listing, /Date\s+\| Session\s+\|\s+Total Sales \| Total Hours/);
+  assert.match(listing, /27\/10 \| 1\s+\|\s+RM2,859\.07 \|\s+03:30:00/);
+  assert.match(listing, /27\/10 \| 2\s+\|\s+RM957\.48 \|\s+00:36:00/);
+  assert.match(listing, /TOTAL \| 3\s+\| RM105,058\.07 \|\s+98:23:00/);
+  assert.ok(listing.length < 4096);
+});
+
 test('weekly summary includes sessions across a month boundary', () => {
   const novemberWeekMonth = {
     period: '2026-11',
@@ -327,10 +338,13 @@ test('Telegram commands answer only the configured chat', async () => {
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/sales' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/salary' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/gaji' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
-  assert.equal(sent.length, 3);
+  await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/sessions' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
+  assert.equal(sent.length, 4);
   assert.match(sent[0].text, /Total GMV     : RM105,058.07/);
   assert.match(sent[1].text, /ESTIMATED EARNINGS/);
   assert.equal(sent[1].text, sent[2].text);
+  assert.match(sent[3].text, /SESSION LIST/);
+  assert.equal(sent[3].parse_mode, 'HTML');
 });
 
 test('daily report is idempotent, data-aware and explicitly labels corrections', async () => {
@@ -535,6 +549,7 @@ test('administrator chat has full commands, private diagnostics and clickable me
   assert.match(sent[0].text, /SALES & HOURS/);
   assert.match(sent[1].text, /ADMIN HEALTH/);
   assert.ok(sent[2].reply_markup.keyboard.flat().includes('/admin'));
+  assert.ok(sent[2].reply_markup.keyboard.flat().includes('/sessions'));
 });
 
 test('missing-report warning alerts the administrator once after the grace period', async () => {
