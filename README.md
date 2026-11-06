@@ -53,6 +53,8 @@ The Telegram bot is restricted to the configured host chat. Its English command 
 | `/target` | GMV required for the next tier |
 | `/week` | Current weekly summary, including cross-month weeks |
 | `/month` | Current monthly summary |
+| `/sessions` | One row per published session in the active month |
+| `/history` | Read-only month picker, overview and paginated session history |
 | `/performance` | Sales performance insights |
 | `/status` | Bot, storage, report and reminder status |
 | `/menu` | Complete command list |
@@ -80,6 +82,7 @@ The configured administrator chat receives the same operational commands plus pr
 - Later non-correction republishes are labelled `UPDATED DAILY SALES REPORT`.
 - The Worker stores a report signature in Cloudflare KV to prevent duplicate delivery, even across different commit SHAs.
 - Salary and estimated earnings are shown only when requested with `/salary`.
+- Historical salary, commission and estimated earnings are visible only in the administrator chat.
 - The Worker reads `data/manifest.json`, so changing the default month during the coordinated month-end rollover activates the new month without another Worker source edit.
 
 ## System Architecture

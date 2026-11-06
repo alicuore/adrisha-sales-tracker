@@ -12,6 +12,8 @@ const LATEST_REPORT_STATE_KEY = 'telegram-report:v1:latest';
 const MOTIVATION_STATE_KEY = 'telegram-motivation:v1:quote-state';
 const REPOSITORY = 'alicuore/adrisha-sales-tracker';
 const MANIFEST_PATH = 'data/manifest.json';
+const HISTORY_MONTHS_PER_PAGE = 8;
+const HISTORY_SESSIONS_PER_PAGE = 12;
 const TEST_MESSAGE = `\u2705\uFE0F ADRISHA LIVE REMINDER TEST
 
 Cloudflare is connected. Reminders, reports and bot commands are ready.`;
@@ -772,6 +774,144 @@ function buildSessionListReply(month) {
     + `</pre>${remarksBlock}\n\nOne table row represents one published session.`;
 }
 
+function historyMonthDescriptors(manifest) {
+  return [...manifest.months]
+    .filter(item => /^\d{4}-\d{2}$/.test(item?.period) && typeof item?.path === 'string')
+    .sort((a, b) => b.period.localeCompare(a.period));
+}
+
+function buildHistoryMonthPicker(manifest, requestedPage = 0) {
+  const months = historyMonthDescriptors(manifest);
+  const totalPages = Math.max(1, Math.ceil(months.length / HISTORY_MONTHS_PER_PAGE));
+  const page = Math.min(Math.max(Number(requestedPage) || 0, 0), totalPages - 1);
+  const pageMonths = months.slice(
+    page * HISTORY_MONTHS_PER_PAGE,
+    (page + 1) * HISTORY_MONTHS_PER_PAGE
+  );
+  const inlineKeyboard = [];
+  for (let index = 0; index < pageMonths.length; index += 2) {
+    inlineKeyboard.push(pageMonths.slice(index, index + 2).map(item => ({
+      text: `${item.status === 'completed' ? '\u2705' : '\uD83D\uDFE2'} ${formatPeriod(item.period)}`,
+      callback_data: `history:month:${item.period}`
+    })));
+  }
+  const navigation = [];
+  if (page > 0) {
+    navigation.push({ text: '\u2039 Newer', callback_data: `history:months:${page - 1}` });
+  }
+  if (page < totalPages - 1) {
+    navigation.push({ text: 'Older \u203A', callback_data: `history:months:${page + 1}` });
+  }
+  if (navigation.length > 0) inlineKeyboard.push(navigation);
+  return {
+    text: `\uD83D\uDCDA SALES HISTORY\n\nChoose a month to view. Historical records are read-only.\n\nPage ${page + 1} of ${totalPages}`,
+    page,
+    totalPages,
+    replyMarkup: { inline_keyboard: inlineKeyboard }
+  };
+}
+
+function buildHistoryOverviewReply(month, isAdmin = false) {
+  const summary = summarizeMonth(month);
+  const activeDays = new Set(month.sessions.map(session => session.date)).size;
+  const status = month.status === 'completed' ? 'Closed'
+    : month.status === 'open' ? 'Open' : 'Recorded';
+  const earnings = isAdmin
+    ? `\n\n\uD83D\uDD10 ADMIN EARNINGS\n\n`
+      + `Basic Salary      : RM${formatGmv(summary.salaryCents)}\n`
+      + `Commission        : RM${formatGmv(summary.commission.commissionCents)}\n`
+      + `Estimated Earnings: RM${formatGmv(summary.salaryCents + summary.commission.commissionCents)}`
+    : '';
+  return `\uD83D\uDCCA MONTHLY SALES HISTORY\n\n${formatPeriod(month.period)}\n\n`
+    + `Status        : ${status}\n`
+    + `Total GMV     : RM${formatGmv(summary.gmvCents)}\n`
+    + `Total Hours   : ${formatDuration(summary.payrollSeconds)}\n`
+    + `Sessions      : ${summary.sessions.length}\n`
+    + `Active Days   : ${activeDays}`
+    + earnings
+    + `\n\nRead-only historical view.`;
+}
+
+function historyOverviewKeyboard(period) {
+  return {
+    inline_keyboard: [
+      [{ text: '\uD83D\uDCCB View session list', callback_data: `history:sessions:${period}:0` }],
+      [{ text: '\uD83D\uDCDA Choose another month', callback_data: 'history:months:0' }]
+    ]
+  };
+}
+
+function buildHistorySessionPage(month, requestedPage = 0) {
+  const sessions = [...month.sessions].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.sessionNumber - b.sessionNumber
+  );
+  const totalPages = Math.max(1, Math.ceil(sessions.length / HISTORY_SESSIONS_PER_PAGE));
+  const page = Math.min(Math.max(Number(requestedPage) || 0, 0), totalPages - 1);
+  const pageSessions = sessions.slice(
+    page * HISTORY_SESSIONS_PER_PAGE,
+    (page + 1) * HISTORY_SESSIONS_PER_PAGE
+  );
+  const summary = summarizeMonth(month);
+  let text;
+  if (sessions.length === 0) {
+    text = `\uD83D\uDCCB SESSION HISTORY\n\nNo sales sessions were published for ${formatPeriod(month.period)}.`;
+  } else {
+    const salesValues = sessions.map(session => `RM${formatGmv(session.gmvCents)}`);
+    const salesWidth = Math.max('Total Sales'.length, ...salesValues.map(value => value.length));
+    const hoursWidth = Math.max(
+      'Total Hours'.length,
+      ...sessions.map(session => formatDuration(session.durationSeconds).length)
+    );
+    const header = `${'Date'.padEnd(5)} | ${'Session'.padEnd(7)} | ${'Total Sales'.padStart(salesWidth)} | ${'Total Hours'.padStart(hoursWidth)}`;
+    const separator = `${'-'.repeat(5)}-+-${'-'.repeat(7)}-+-${'-'.repeat(salesWidth)}-+-${'-'.repeat(hoursWidth)}`;
+    const rows = pageSessions.map(session => {
+      const date = `${session.date.slice(8, 10)}/${session.date.slice(5, 7)}`;
+      return `${date} | ${String(session.sessionNumber).padEnd(7)} | ${`RM${formatGmv(session.gmvCents)}`.padStart(salesWidth)} | ${formatDuration(session.durationSeconds).padStart(hoursWidth)}`;
+    });
+    const total = `${'TOTAL'.padEnd(5)} | ${String(sessions.length).padEnd(7)} | ${`RM${formatGmv(summary.gmvCents)}`.padStart(salesWidth)} | ${formatDuration(summary.payrollSeconds).padStart(hoursWidth)}`;
+    const first = page * HISTORY_SESSIONS_PER_PAGE + 1;
+    const last = first + pageSessions.length - 1;
+    const sessionDates = new Set(sessions.map(session => session.date));
+    const remarks = page === totalPages - 1
+      ? (month.attendance ?? [])
+        .filter(item => item.status !== 'working' && !sessionDates.has(item.date))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      : [];
+    const statusLabels = { leave: 'Annual Leave', off: 'Off / Public Holiday', absent: 'Cancelled / Absent' };
+    const remarksBlock = remarks.length === 0 ? '' : '\n\nNO SESSION / REMARKS\n\n'
+      + remarks.map(item => {
+        const date = `${item.date.slice(8, 10)}/${item.date.slice(5, 7)}`;
+        return `${date} \u2014 ${statusLabels[item.status]}\n${escapeHtml(item.notes)}`;
+      }).join('\n\n');
+    text = `\uD83D\uDCCB SESSION HISTORY\n\n${formatPeriod(month.period)}\n`
+      + `Sessions ${first}\u2013${last} of ${sessions.length} \u2022 Page ${page + 1} of ${totalPages}\n\n<pre>`
+      + [header, separator, ...rows, separator, total].join('\n')
+      + `</pre>${remarksBlock}`;
+  }
+  const navigation = [];
+  if (page > 0) {
+    navigation.push({ text: '\u2039 Previous', callback_data: `history:sessions:${month.period}:${page - 1}` });
+  }
+  if (totalPages > 1) {
+    navigation.push({ text: `${page + 1}/${totalPages}`, callback_data: 'history:noop' });
+  }
+  if (page < totalPages - 1) {
+    navigation.push({ text: 'Next \u203A', callback_data: `history:sessions:${month.period}:${page + 1}` });
+  }
+  const inlineKeyboard = [];
+  if (navigation.length > 0) inlineKeyboard.push(navigation);
+  inlineKeyboard.push(
+    [{ text: '\uD83D\uDCCA Month overview', callback_data: `history:month:${month.period}` }],
+    [{ text: '\uD83D\uDCDA Choose another month', callback_data: 'history:months:0' }]
+  );
+  return {
+    text,
+    page,
+    totalPages,
+    replyMarkup: { inline_keyboard: inlineKeyboard }
+  };
+}
+
 function buildPerformanceReply(month) {
   if (month.sessions.length === 0) return `\uD83D\uDCC8 PERFORMANCE\n\nNo sales sessions have been published for ${formatPeriod(month.period)}.`;
   const daily = new Map();
@@ -819,6 +959,7 @@ const PUBLIC_COMMANDS = Object.freeze([
   { command: 'week', description: 'Current weekly summary' },
   { command: 'month', description: 'Current monthly summary' },
   { command: 'sessions', description: 'All published sessions this month' },
+  { command: 'history', description: 'Browse previous monthly sales' },
   { command: 'performance', description: 'Sales performance insights' },
   { command: 'status', description: 'Bot and data health' },
   { command: 'menu', description: 'Show all commands' }
@@ -842,6 +983,7 @@ const MENU_MESSAGE = `\uD83E\uDD16 ADRISHA BOT MENU
 /week \u2013 current weekly summary
 /month \u2013 current monthly summary
 /sessions \u2013 all published sessions this month
+/history \u2013 browse previous monthly sales
 /performance \u2013 sales performance insights
 /status \u2013 bot and data health
 /menu \u2013 show this command list
@@ -860,8 +1002,9 @@ function menuKeyboard(isAdmin = false) {
     ['/schedule', '/tomorrow'],
     ['/report', '/target'],
     ['/week', '/month'],
-    ['/sessions', '/performance'],
-    ['/status', '/menu']
+    ['/sessions', '/history'],
+    ['/performance', '/status'],
+    ['/menu']
   ];
   if (isAdmin) keyboard.push(['/admin', '/health'], ['/next', '/missing']);
   return { keyboard, resize_keyboard: true, is_persistent: true };
@@ -928,6 +1071,15 @@ async function answerCallback(callbackQueryId, text, env, fetchImpl = fetch) {
   }, env, fetchImpl);
 }
 
+async function editCallbackMessage(callback, text, env, fetchImpl = fetch, extra = {}) {
+  return telegramApi('editMessageText', {
+    chat_id: callback.message.chat.id,
+    message_id: callback.message.message_id,
+    text,
+    ...extra
+  }, env, fetchImpl);
+}
+
 async function handleTelegramCallback(callback, env, fetchImpl = fetch, now = new Date()) {
   const chatId = String(callback?.message?.chat?.id ?? '');
   const data = callback?.data ?? '';
@@ -940,6 +1092,52 @@ async function handleTelegramCallback(callback, env, fetchImpl = fetch, now = ne
   }
 
   const parts = data.split(':');
+  if (parts[0] === 'history') {
+    if (parts[1] === 'noop') {
+      await answerCallback(callback.id, 'Current page.', env, fetchImpl);
+      return { handled: true, action: 'history-noop' };
+    }
+    const manifest = await loadManifest(fetchImpl);
+    if (parts[1] === 'months' && parts.length === 3) {
+      const picker = buildHistoryMonthPicker(manifest, parts[2]);
+      await answerCallback(callback.id, 'Choose a month.', env, fetchImpl);
+      await editCallbackMessage(callback, picker.text, env, fetchImpl, {
+        reply_markup: picker.replyMarkup
+      });
+      return { handled: true, action: 'history-months', page: picker.page };
+    }
+    if (parts[1] === 'month' && parts.length === 3) {
+      const period = parts[2];
+      if (!manifest.months.some(item => item.period === period)) {
+        await answerCallback(callback.id, 'That month is no longer available.', env, fetchImpl);
+        return { handled: false, reason: 'history-month-unavailable' };
+      }
+      const month = await loadMonth(period, fetchImpl, 'main', manifest);
+      await answerCallback(callback.id, `Loaded ${formatPeriod(period)}.`, env, fetchImpl);
+      await editCallbackMessage(callback, buildHistoryOverviewReply(month, isAdmin), env, fetchImpl, {
+        reply_markup: historyOverviewKeyboard(period)
+      });
+      return { handled: true, action: 'history-month', period, role: isAdmin ? 'admin' : 'host' };
+    }
+    if (parts[1] === 'sessions' && parts.length === 4) {
+      const period = parts[2];
+      if (!manifest.months.some(item => item.period === period)) {
+        await answerCallback(callback.id, 'That month is no longer available.', env, fetchImpl);
+        return { handled: false, reason: 'history-month-unavailable' };
+      }
+      const month = await loadMonth(period, fetchImpl, 'main', manifest);
+      const listing = buildHistorySessionPage(month, parts[3]);
+      await answerCallback(callback.id, `Page ${listing.page + 1} of ${listing.totalPages}.`, env, fetchImpl);
+      await editCallbackMessage(callback, listing.text, env, fetchImpl, {
+        parse_mode: 'HTML',
+        reply_markup: listing.replyMarkup
+      });
+      return {
+        handled: true, action: 'history-sessions', period,
+        page: listing.page, totalPages: listing.totalPages
+      };
+    }
+  }
   if (parts[0] === 'ack' && parts.length === 3) {
     if (!isHost) return { handled: false, reason: 'acknowledgement-requires-host-chat' };
     const [, period, date] = parts;
@@ -1081,6 +1279,11 @@ async function handleTelegramUpdate(update, env, fetchImpl = fetch, now = new Da
     }
     reply = buildWeekReply(weekMonths.length > 0 ? weekMonths : [activeMonth], today);
   } else if (command === 'month') reply = buildMonthReply(month);
+  else if (command === 'history') {
+    const picker = buildHistoryMonthPicker(manifest);
+    reply = picker.text;
+    replyOptions = { reply_markup: picker.replyMarkup };
+  }
   else if (command === 'sessions') {
     reply = buildSessionListReply(month);
     replyOptions = { parse_mode: 'HTML' };
@@ -1401,6 +1604,9 @@ export {
   buildWeekReply,
   buildMonthReply,
   buildSessionListReply,
+  buildHistoryMonthPicker,
+  buildHistoryOverviewReply,
+  buildHistorySessionPage,
   buildPerformanceReply,
   buildStatusReply,
   calculateGmvProgress,

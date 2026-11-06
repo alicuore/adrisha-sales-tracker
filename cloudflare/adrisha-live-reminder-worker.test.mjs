@@ -16,12 +16,16 @@ import {
   buildWeekReply,
   buildMonthReply,
   buildSessionListReply,
+  buildHistoryMonthPicker,
+  buildHistoryOverviewReply,
+  buildHistorySessionPage,
   buildPerformanceReply,
   buildStatusReply,
   buildScheduleReply,
   calculateGmvProgress,
   checkMissingReportWarning,
   eventKey,
+  formatDuration,
   handleTelegramCallback,
   handleTelegramUpdate,
   loadActiveMonth,
@@ -36,6 +40,12 @@ import worker from './adrisha-live-reminder-worker.mjs';
 
 const novemberData = JSON.parse(
   readFileSync(new URL('../data/2026/11-november.json', import.meta.url), 'utf8')
+);
+const augustData = JSON.parse(
+  readFileSync(new URL('../data/2026/08-august.json', import.meta.url), 'utf8')
+);
+const productionManifest = JSON.parse(
+  readFileSync(new URL('../data/manifest.json', import.meta.url), 'utf8')
 );
 
 const manifest = {
@@ -223,11 +233,49 @@ test('session list shows one row per session and monthly totals', () => {
   assert.match(listing, /Date\s+\| Session\s+\|\s+Total Sales \| Total Hours/);
   assert.match(listing, /01\/11 \| 1\s+\|\s+RM2,036\.78 \|\s+03:00:00/);
   assert.match(listing, /03\/11 \| 1\s+\|\s+RM3,682\.50 \|\s+04:30:00/);
-  assert.match(listing, /TOTAL \| 2\s+\|\s+RM5,719\.28 \|\s+07:30:00/);
+  const gmv = novemberData.sessions.reduce((total, session) => total + session.gmvCents, 0);
+  const formattedGmv = (gmv / 100).toLocaleString('en-MY', { minimumFractionDigits: 2 });
+  assert.ok(listing.includes(`TOTAL | ${novemberData.sessions.length}`));
+  assert.ok(listing.includes(`RM${formattedGmv}`));
+  assert.ok(listing.includes(formatDuration(novemberData.approvedPayrollSeconds)));
   assert.match(listing, /NO SESSION \/ REMARKS/);
   assert.match(listing, /02\/11 \u2014 Cancelled \/ Absent/);
   assert.match(listing, /massive flash flooding in Shah Alam/);
   assert.ok(listing.length < 4096);
+});
+
+test('sales history month picker is newest-first and paginated', () => {
+  const firstPage = buildHistoryMonthPicker(productionManifest);
+  const secondPage = buildHistoryMonthPicker(productionManifest, 1);
+  assert.equal(firstPage.totalPages, 2);
+  assert.match(firstPage.text, /SALES HISTORY/);
+  assert.match(firstPage.replyMarkup.inline_keyboard[0][0].text, /November 2026/);
+  assert.equal(firstPage.replyMarkup.inline_keyboard[0][0].callback_data, 'history:month:2026-11');
+  assert.match(secondPage.text, /Page 2 of 2/);
+  assert.ok(secondPage.replyMarkup.inline_keyboard.flat()
+    .some(button => /January 2026/.test(button.text)));
+});
+
+test('sales history hides earnings from the host and shows them to the admin', () => {
+  const host = buildHistoryOverviewReply(augustData, false);
+  const admin = buildHistoryOverviewReply(augustData, true);
+  assert.match(host, /MONTHLY SALES HISTORY/);
+  assert.doesNotMatch(host, /Basic Salary|Commission|Estimated Earnings/);
+  assert.match(admin, /ADMIN EARNINGS/);
+  assert.match(admin, /Basic Salary/);
+  assert.match(admin, /Commission/);
+  assert.match(admin, /Estimated Earnings/);
+});
+
+test('historical session list is paginated and remains within Telegram limits', () => {
+  const first = buildHistorySessionPage(augustData);
+  const last = buildHistorySessionPage(augustData, first.totalPages - 1);
+  assert.equal(first.totalPages, 5);
+  assert.match(first.text, /Sessions 1–12 of 59/);
+  assert.equal(first.replyMarkup.inline_keyboard[0].at(-1).callback_data, 'history:sessions:2026-08:1');
+  assert.match(last.text, /Sessions 49–59 of 59/);
+  assert.ok(first.text.length < 4096);
+  assert.ok(last.text.length < 4096);
 });
 
 test('weekly summary includes sessions across a month boundary', () => {
@@ -345,12 +393,48 @@ test('Telegram commands answer only the configured chat', async () => {
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/salary' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/gaji' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
   await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/sessions' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
-  assert.equal(sent.length, 4);
+  await handleTelegramUpdate({ message: { chat: { id: 1707 }, text: '/history' } }, env, fetchImpl, new Date('2026-10-27T04:00:00Z'));
+  assert.equal(sent.length, 5);
   assert.match(sent[0].text, /Total GMV     : RM105,058.07/);
   assert.match(sent[1].text, /ESTIMATED EARNINGS/);
   assert.equal(sent[1].text, sent[2].text);
   assert.match(sent[3].text, /SESSION LIST/);
   assert.equal(sent[3].parse_mode, 'HTML');
+  assert.match(sent[4].text, /SALES HISTORY/);
+  assert.equal(sent[4].reply_markup.inline_keyboard[0][0].callback_data, 'history:month:2026-11');
+});
+
+test('sales history callbacks keep earnings private and paginate sessions', async () => {
+  const sent = [];
+  const env = {
+    TELEGRAM_BOT_TOKEN: 'token', TELEGRAM_CHAT_ID: '1707', ADMIN_TELEGRAM_CHAT_ID: '9989'
+  };
+  const fetchImpl = async (url, options) => {
+    if (url.endsWith('/data/manifest.json')) return response(productionManifest);
+    if (url.includes('/data/2026/08-august.json')) return response(augustData);
+    const body = JSON.parse(options.body);
+    sent.push({ method: url.split('/').at(-1), ...body });
+    return response({ ok: true });
+  };
+  const base = { message: { message_id: 77 } };
+  const host = await handleTelegramCallback({
+    ...base, id: 'history-host', data: 'history:month:2026-08', message: { ...base.message, chat: { id: 1707 } }
+  }, env, fetchImpl);
+  assert.equal(host.role, 'host');
+  assert.doesNotMatch(sent.at(-1).text, /ADMIN EARNINGS/);
+
+  const admin = await handleTelegramCallback({
+    ...base, id: 'history-admin', data: 'history:month:2026-08', message: { ...base.message, chat: { id: 9989 } }
+  }, env, fetchImpl);
+  assert.equal(admin.role, 'admin');
+  assert.match(sent.at(-1).text, /ADMIN EARNINGS/);
+
+  const sessions = await handleTelegramCallback({
+    ...base, id: 'history-sessions', data: 'history:sessions:2026-08:1', message: { ...base.message, chat: { id: 1707 } }
+  }, env, fetchImpl);
+  assert.equal(sessions.page, 1);
+  assert.equal(sent.at(-1).parse_mode, 'HTML');
+  assert.match(sent.at(-1).text, /Sessions 13–24 of 59/);
 });
 
 test('daily report is idempotent, data-aware and explicitly labels corrections', async () => {
