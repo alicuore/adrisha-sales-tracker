@@ -323,6 +323,11 @@
       "date": "2026-11-02",
       "status": "absent",
       "notes": "Scheduled livestream cancelled due to the massive flash flooding in Shah Alam."
+    },
+    {
+      "date": "2026-11-21",
+      "status": "leave",
+      "notes": "Emergency Leave"
     }
   ],
   "schedule": [
