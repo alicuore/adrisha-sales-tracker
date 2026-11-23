@@ -104,9 +104,16 @@ test('all 30 November shifts produce events except recorded non-working dates', 
   const monthEvents = buildMonthEvents(novemberData);
   assert.equal(NOVEMBER_SHIFTS.length, 30);
   assert.equal(events.length, 60);
-  assert.equal(monthEvents.length, 87);
-  assert.equal(monthEvents.filter(event => event.type === 'motivation').length, 29);
-  assert.equal(monthEvents.some(event => event.date === '2026-11-02'), false);
+  const nonWorkingDates = novemberData.attendance
+    .filter(({ date, status }) => status !== 'working' &&
+      !novemberData.sessions.some(session => session.date === date))
+    .map(({ date }) => date);
+  const expectedActiveShifts = NOVEMBER_SHIFTS.length - nonWorkingDates.length;
+  assert.equal(monthEvents.length, expectedActiveShifts * 3);
+  assert.equal(monthEvents.filter(event => event.type === 'motivation').length, expectedActiveShifts);
+  for (const date of nonWorkingDates) {
+    assert.equal(monthEvents.some(event => event.date === date), false);
+  }
   assert.equal(REMINDER_EVENTS.length, 68);
   assert.deepEqual(events[0], {
     utc: '2026-11-01T08:00:00.000Z',
